@@ -5,12 +5,14 @@ on:
       - 'Dockerfile'
       - '.github/workflows/bunny-managed-image.yml'
       - 'scripts/smoke-managed.sh'
+      - '.github/upstream-state.json'
   push:
     branches: [main]
     paths:
       - 'Dockerfile'
       - '.github/workflows/bunny-managed-image.yml'
       - 'scripts/smoke-managed.sh'
+      - '.github/upstream-state.json'
   schedule:
     - cron: '37 5 * * *'
   workflow_dispatch:
