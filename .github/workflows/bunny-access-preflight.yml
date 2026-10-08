@@ -1,0 +1,41 @@
+name: Bunny production access preflight
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/bunny-access-preflight.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      HAS_BUNNY_API_KEY: ${{ secrets.BUNNYNET_API_KEY != '' }}
+      HAS_BUNNY_APP_ID: ${{ vars.BUNNY_MC_APP_ID != '' }}
+    steps:
+      - name: Report availability, never print credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$HAS_BUNNY_API_KEY" == "true" ]]; then
+            echo "Bunny API key: available" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Bunny API key: not configured" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [[ "$HAS_BUNNY_APP_ID" == "true" ]]; then
+            echo "Bunny Magic Containers App ID: available" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Bunny Magic Containers App ID: not configured" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "This check makes no Bunny API requests, creates no resources, and never outputs secret values." >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$HAS_BUNNY_API_KEY" == "true" && "$HAS_BUNNY_APP_ID" == "true" ]]; then
+            echo "STATUS: credentials available for separately authorized deploy" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "STATUS: deploy connection incomplete" >> "$GITHUB_STEP_SUMMARY"
+          fi
