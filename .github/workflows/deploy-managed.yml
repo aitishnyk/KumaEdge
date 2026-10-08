@@ -3,23 +3,45 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: 'Tested image tag (40-character commit SHA)'
+        description: 'Tested image tag (40-character commit SHA from main)'
         required: true
         type: string
 permissions:
   contents: read
+  packages: read
 jobs:
   deploy:
     environment: production
     runs-on: ubuntu-latest
     steps:
-      - name: Validate immutable image identifier
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate SHA is from the protected main branch
         shell: bash
         env:
           TAG: ${{ inputs.image_tag }}
         run: |
-          [[ "$TAG" =~ ^[a-f0-9]{40}$ ]] || { echo 'Expected git SHA'; exit 1; }
-      - name: Update Bunny Magic Container
+          set -euo pipefail
+          [[ "$TAG" =~ ^[a-f0-9]{40}$ ]] || { echo 'Expected full commit SHA'; exit 1; }
+          git merge-base --is-ancestor "$TAG" origin/main || { echo 'Image SHA is not in main'; exit 1; }
+      - name: Authenticate to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify release image exists before Bunny changes
+        shell: bash
+        env:
+          TAG: ${{ inputs.image_tag }}
+        run: |
+          set -euo pipefail
+          repo_lower="${GITHUB_REPOSITORY,,}"
+          docker manifest inspect "ghcr.io/$repo_lower:$TAG" > /dev/null || {
+            echo "GHCR image does not exist or is inaccessible"; exit 1;
+          }
+      - name: Deploy prebuilt immutable tag to Bunny
         uses: BunnyWay/actions/container-update-image@main
         with:
           app_id: ${{ vars.BUNNY_MC_APP_ID }}
