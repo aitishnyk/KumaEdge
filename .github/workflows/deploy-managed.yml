@@ -1,0 +1,28 @@
+name: Bunny Managed - manual production deploy
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Tested image tag (40-character commit SHA)'
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  deploy:
+    environment: production
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate immutable image identifier
+        shell: bash
+        env:
+          TAG: ${{ inputs.image_tag }}
+        run: |
+          [[ "$TAG" =~ ^[a-f0-9]{40}$ ]] || { echo 'Expected git SHA'; exit 1; }
+      - name: Update Bunny Magic Container
+        uses: BunnyWay/actions/container-update-image@main
+        with:
+          app_id: ${{ vars.BUNNY_MC_APP_ID }}
+          api_key: ${{ secrets.BUNNYNET_API_KEY }}
+          container: kumaedge
+          image_tag: ${{ inputs.image_tag }}

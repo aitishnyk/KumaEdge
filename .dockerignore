@@ -1,0 +1,12 @@
+.git
+.github
+node_modules
+web
+edge
+src
+test
+docs
+scripts
+*.md
+.env
+.env.*
