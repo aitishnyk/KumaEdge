@@ -1,0 +1,49 @@
+name: Upstream change watcher
+on:
+  schedule:
+    - cron: '19 6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare upstream SHA and create review PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          HEAD_SHA="$(gh api repos/louislam/uptime-kuma/commits/master --jq '.sha')"
+          BASE_SHA="$(node -p "require('./.github/upstream-state.json').reviewed_sha || ''")"
+          if [[ "$HEAD_SHA" == "$BASE_SHA" ]]; then
+            echo "Upstream already recorded: $HEAD_SHA"
+            exit 0
+          fi
+          BRANCH="automation/upstream-${HEAD_SHA:0:12}"
+          if gh api "repos/$REPO/git/ref/heads/$BRANCH" >/dev/null 2>&1; then
+            echo "Existing review branch: $BRANCH"
+            exit 0
+          fi
+          git switch -c "$BRANCH"
+          UPSTREAM_SHA="$HEAD_SHA" node -e 'const fs=require("fs");const p=".github/upstream-state.json";const j=JSON.parse(fs.readFileSync(p));j.reviewed_sha=process.env.UPSTREAM_SHA;fs.writeFileSync(p,JSON.stringify(j,null,2)+"\n")'
+          git add .github/upstream-state.json
+          git commit -m "chore: review upstream Uptime Kuma ${HEAD_SHA:0:12}"
+          git push origin "$BRANCH"
+          cat > /tmp/kumaedge-upstream-pr.md <<EOF
+          Upstream SHA: \`$HEAD_SHA\`
+
+          **Do not merge until reviewed:** inspect upstream commits, applicable security patches, and regressions.
+
+          This PR only records the observed SHA; it does **not** import security fixes.
+
+          Previous reviewed SHA: \`$BASE_SHA\`.
+          EOF
+          gh pr create --repo "$REPO" --base main --head "$BRANCH" --title "Upstream review: Uptime Kuma ${HEAD_SHA:0:12}" --body-file /tmp/kumaedge-upstream-pr.md
