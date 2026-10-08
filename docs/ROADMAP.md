@@ -1,35 +1,22 @@
-# Roadmap
+# KumaEdge roadmap
 
-All entries are **planned** unless marked implemented.
+## v0.1 — Foundation
+- [x] MIT open-source project, CI, upstream watcher and contribution policies
 
-## v0.1 — foundation
+## v0.2 — Edge preview
+- [x] Bunny standalone Edge Script HTTP check demo
+- [x] Static dashboard and manual deployment instructions
+- [ ] Live Bunny deployment acceptance
 
-- [x] Public open-source repository foundation and MIT license
-- [x] Initial CI and source tests for the portable HTTP status classifier
-- [x] Daily upstream metadata watcher creating reviewable PRs
-- [ ] Vue/Vite dashboard
-- [ ] Bunny static hosting deploy workflow
-- [ ] Bunny Edge Scripts adapter and authenticated API
+## v0.3 — Persistent Monitoring & Scheduler
+- [x] Pure incident state machine with configurable failure/recovery thresholds
+- [x] Tested observed-sample availability rollups
+- [x] Atomic persistence and scheduler security contract
+- [ ] Real durable storage backend with CAS transactions
+- [ ] Authenticated managed scheduler and anti-replay
+- [ ] Idempotent notifications and incident history
+- [ ] Live Bunny integration tests
 
-## v0.2 — reliable monitors
-
-- [ ] Durable monitor configuration and heartbeat persistence
-- [ ] Scheduled HTTP(S) checks with proven periodic dispatch
-- [ ] SSRF-safe DNS, redirect and destination validation
-- [ ] State machine for incidents, retries and recovery
-- [ ] Time-series rollups
-
-## v0.3 — notifications and status
-
-- [ ] Telegram, email and webhook integrations
-- [ ] Public status pages and incident history
-- [ ] TLS expiry checks, verified regional checks
-- [ ] Restore, backup and export
-
-## v1.0 — production gates
-
-- [ ] End-to-end deployment tested on Bunny.net
-- [ ] Secure authorization, threat model, and key rotation
-- [ ] Concurrency, race, load and data retention validation
-- [ ] One-command assisted setup and clear pricing documentation
-- [ ] Upstream vulnerability applicability tracked to resolution
+## v1.0 — Production
+- [ ] Tenant auth, SSRF hardening, protected configuration
+- [ ] Stable history and backups, operator visibility, simple installer
