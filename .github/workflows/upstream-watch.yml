@@ -6,6 +6,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 jobs:
   watch:
     runs-on: ubuntu-latest
@@ -28,15 +29,24 @@ jobs:
             exit 0
           fi
           BRANCH="automation/upstream-${HEAD_SHA:0:12}"
+          if [[ ! "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Upstream did not return a valid immutable commit SHA"
+            exit 1
+          fi
           if gh api "repos/$REPO/git/ref/heads/$BRANCH" >/dev/null 2>&1; then
-            echo "Existing review branch: $BRANCH"
+            echo "Review branch already exists: $BRANCH"
+          else
+            git switch -c "$BRANCH"
+            UPSTREAM_SHA="$HEAD_SHA" node -e 'const fs=require("fs");const p=".github/upstream-state.json";const j=JSON.parse(fs.readFileSync(p));j.reviewed_sha=process.env.UPSTREAM_SHA;fs.writeFileSync(p,JSON.stringify(j,null,2)+"\\n")'
+            git add .github/upstream-state.json
+            git commit -m "chore: review upstream Uptime Kuma ${HEAD_SHA:0:12}"
+            git push origin "$BRANCH"
+          fi
+          if gh pr list --repo "$REPO" --state open --head "$BRANCH" --json number --jq 'length' | grep -Eq '^[1-9][0-9]*$'; then
+            echo "Upstream review PR already open."
             exit 0
           fi
-          git switch -c "$BRANCH"
-          UPSTREAM_SHA="$HEAD_SHA" node -e 'const fs=require("fs");const p=".github/upstream-state.json";const j=JSON.parse(fs.readFileSync(p));j.reviewed_sha=process.env.UPSTREAM_SHA;fs.writeFileSync(p,JSON.stringify(j,null,2)+"\n")'
-          git add .github/upstream-state.json
-          git commit -m "chore: review upstream Uptime Kuma ${HEAD_SHA:0:12}"
-          git push origin "$BRANCH"
+
           cat > /tmp/kumaedge-upstream-pr.md <<EOF
           Upstream SHA: \`$HEAD_SHA\`
 
@@ -46,4 +56,27 @@ jobs:
 
           Previous reviewed SHA: \`$BASE_SHA\`.
           EOF
-          gh pr create --repo "$REPO" --base main --head "$BRANCH" --title "Upstream review: Uptime Kuma ${HEAD_SHA:0:12}" --body-file /tmp/kumaedge-upstream-pr.md
+          if gh pr create --repo "$REPO" --base main --head "$BRANCH" --title "Upstream review: Uptime Kuma ${HEAD_SHA:0:12}" --body-file /tmp/kumaedge-upstream-pr.md; then
+            exit 0
+          fi
+          # GitHub Actions can be forbidden from creating PRs at repository
+          # policy level even with pull-requests: write. Do not lose the alert.
+          echo "::warning::GitHub Actions cannot create a review PR; opening fallback Issue."
+          TITLE="Upstream PR creation blocked: Uptime Kuma ${HEAD_SHA:0:12}"
+          if gh issue list --repo "$REPO" --state open --search "$TITLE in:title" --json title --jq '.[].title' | grep -Fxq "$TITLE"; then
+            echo "Existing fallback Issue found; no duplicate created."
+            exit 0
+          fi
+          cat > /tmp/kumaedge-upstream-issue.md <<EOF
+          An upstream Uptime Kuma change requires manual review.
+
+          - Upstream SHA: \`$HEAD_SHA\`
+          - Prepared branch: \`$BRANCH\`
+          - Repository: $REPO
+          - The repository's Actions policy blocked automatic PR creation.
+          - Open a PR for the prepared branch, review upstream, then merge only after CI.
+
+          To enable automated PRs later, configure repository Actions settings:
+          **Allow GitHub Actions to create and approve pull requests**.
+          EOF
+          gh issue create --repo "$REPO" --title "$TITLE" --body-file /tmp/kumaedge-upstream-issue.md
