@@ -1,3 +1,5 @@
+import { isIP } from "node:net";
+
 /**
  * Read-only, unauthenticated public endpoint acceptance.
  * No passwords, API tokens, cookies, or mutable requests are transmitted.
@@ -7,12 +9,24 @@ const maxResponseBytes = 8192;
 const timeoutMs = 8000;
 const redirectCodes = new Set([301, 302, 303, 307, 308]);
 
-export function parseEndpoint(url, { allowLocalHttp = false } = {}) {
+export function parseEndpoint(url, { allowLocalHttp = false, publicOnly = false } = {}) {
   const endpoint = new URL(url);
   if (endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
     throw new Error("URL must not contain user info, query or fragment");
   }
   if (endpoint.pathname !== "/") throw new Error("Use the origin URL without a subpath");
+  if (publicOnly) {
+    // Reject explicit private/loopback addresses and local-only DNS names.
+    // DNS rebind protection is a separate network-policy concern.
+    const host = endpoint.hostname.toLowerCase().replace(/\.$/, "");
+    const address = host.replace(/^\[|\]$/g, "");
+    if (isIP(address) !== 0 || host === "localhost" ||
+        host.endsWith(".localhost") || host.endsWith(".local") ||
+        host.endsWith(".internal") || host.endsWith(".test") ||
+        !host.includes(".")) {
+      throw new Error("Production monitoring requires a public DNS hostname");
+    }
+  }
   const local = ["127.0.0.1", "localhost", "[::1]"].includes(endpoint.hostname);
   if (endpoint.protocol !== "https:" && !(allowLocalHttp && local && endpoint.protocol === "http:")) {
     throw new Error("HTTPS is required for production checks");
@@ -125,7 +139,7 @@ export async function auditEndpoint(url, {
 } = {}) {
   if (!["production", "smoke"].includes(mode)) throw new TypeError("Invalid mode");
   if (mode === "production" && allowLocalHttp) throw new Error("Local HTTP is only permitted in smoke mode");
-  const origin = parseEndpoint(url, { allowLocalHttp });
+  const origin = parseEndpoint(url, { allowLocalHttp, publicOnly: mode === "production" });
   const request = (path) => fetchImpl(origin + path, {
     method: "GET",
     redirect: "manual",

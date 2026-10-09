@@ -1,0 +1,47 @@
+name: KumaEdge - independent public uptime watch
+
+on:
+  schedule:
+    - cron: '17,47 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kumaedge-public-uptime-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    # Disabled unless explicitly opted in; manual run always available.
+    if: github.event_name == 'workflow_dispatch' || vars.KUMAEDGE_PUBLIC_WATCH_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      KUMAEDGE_PUBLIC_URL: ${{ vars.KUMAEDGE_PUBLIC_URL }}
+      KUMAEDGE_REQUIRE_HSTS: ${{ vars.KUMAEDGE_REQUIRE_HSTS }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: External public HTTPS, polling, and WebSocket check
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${KUMAEDGE_PUBLIC_URL:-}" ]]; then
+            echo "::error::Set KUMAEDGE_PUBLIC_URL to a trusted public HTTPS origin"
+            exit 2
+          fi
+          args=(--url "$KUMAEDGE_PUBLIC_URL")
+          if [[ "${KUMAEDGE_REQUIRE_HSTS:-}" == "true" ]]; then
+            args+=(--require-hsts)
+          fi
+          node scripts/check-production.mjs "${args[@]}"
+          {
+            echo '### Independent public KumaEdge endpoint: PASS'
+            echo '- HTTPS landing, cache policy, polling and WebSocket passed in this run.'
+            echo '- This is a point-in-time observation, not a 24/7 SLA.'
+            echo '- Account login, alerts, persistence, backups and restore were NOT checked.'
+          } >> "$GITHUB_STEP_SUMMARY"
