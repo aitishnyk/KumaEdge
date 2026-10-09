@@ -53,3 +53,14 @@ python3 scripts/restore-bunny-sqlite.py /private/backup.db.age /private/age-iden
 ```
 
 The command verifies the SHA-256 receipt (when provided), authenticates/decrypts age in a protected temporary directory, verifies full SQLite integrity and schema, and publishes the verified result **only at a new path**. It never overwrites the current `/app/data/kuma.db`. Before recovery into a new deployment, ensure compatible Uptime Kuma schema, restore other required files from a full-volume archive, keep an isolated test instance and verify login/2FA/alerts. This utility does not claim to download from Bunny by itself and is not a live-volume disaster-recovery automation.
+
+## Download an encrypted backup directly from your private Bunny Storage Zone (v0.9)
+
+After obtaining the exact object path and SHA-256 checksum logged by a **successful verified** worker upload, use a trusted local terminal. Configure the private storage zone read key in the environment via a secure secret manager (not the shell history, GitHub issue or chat). If Bunny does not offer a read-only key for your Zone, protect the zone password carefully.
+
+```sh
+python3 scripts/download-bunny-sqlite.py PRIVATE_STORAGE_ZONE kumaedge/sqlite/YYYY/MM/DD/YYYYMMDDTHHMMSSZ-16_HEX_CHARS.db.age /private/downloaded-backup.age --region de --sha256 VERIFIED_64_CHAR_SHA256
+python3 scripts/restore-bunny-sqlite.py /private/downloaded-backup.age /private/age-identity.txt /private/recovered/kuma.db --expected-sha256 VERIFIED_64_CHAR_SHA256
+```
+
+The `download-bunny-sqlite.py` tool reads `KUMAEDGE_STORAGE_ACCESS_KEY` from the environment, downloads **only** an expected backup object over the Bunny HTTPS Storage API, and atomically publishes a new private ciphertext file **only after** complete checksum verification. It never mutates or deletes remote data. The separate restore tool uses the private `age` identity **only locally**. None of this overwrites a running Kuma database or replaces the mandatory isolated restore exercise.
