@@ -8,12 +8,22 @@ export function classifyManifest(result) {
     throw Error("Registry inspection did not return a valid process result");
   }
   if (result.status === 0) return "present";
-  const stderr = (result.stderr || "").trim();
-  if (/^no such manifest(?:\s|:)/i.test(stderr) ||
-      /^manifest unknown(?:\s|:)/i.test(stderr)) {
-    return "missing";
-  }
-  throw Error("Cannot determine manifest presence safely; refuse release");
+  const stderr = (result.stderr || "").replace(/\x1b\[[0-9;]*m/g, "").trim();
+  // GHCR and Docker wrap an absent manifest in several diagnostic prefixes,
+  // including "Error response from daemon: manifest unknown: manifest unknown".
+  // An explicit missing-manifest reason is safe ONLY if no authentication,
+  // network or rate-limiting failure appears anywhere in the diagnostic.
+  const unsafe = /\b(?:unauthorized|unauthenticated|denied|forbidden|authentication|access denied|timeout|timed out|connection|network|deadline|rate.limit|too many requests|tls|x509|401|403|429|500|502|503|504)\b/i;
+  const missing = /\b(?:no such manifest|manifest unknown|MANIFEST_UNKNOWN)\b/i;
+  if (missing.test(stderr) && !unsafe.test(stderr)) return "missing";
+  // Never print arbitrary raw Docker output or a token-bearing URL to Actions.
+  const hint = (stderr.split(/\r?\n/).find(Boolean) || "no diagnostic")
+    .replace(/https?:\/\/\S+/gi, "[URL]")
+    .replace(/\b(?:bearer|token|password|secret|authorization)[=: ]+\S+/gi, "[credential]")
+    .replace(/[A-Za-z0-9+/=_-]{40,}/g, "[data]")
+    .slice(0, 180);
+  throw Error("Cannot determine manifest presence safely; refuse release" +
+    " (exit " + result.status + ", Docker: " + hint + ")");
 }
 
 export function planImagePublish(main, backup) {
