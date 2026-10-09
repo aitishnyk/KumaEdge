@@ -43,3 +43,5 @@ A verified SQLite snapshot is **not** a complete `/app/data` backup or proof of 
 - [Optional automated age-encrypted Bunny Storage backups of SQLite (not full volume)](docs/BUNNY_SQLITE_OFFSITE_BACKUP.md)
 
 **New installation with the optional encrypted SQLite offsite worker:** `bash scripts/install-bunny.sh --with-backup`. This variant requires a private Bunny Storage Zone and an age public recipient; see [the backup guide](docs/BUNNY_SQLITE_OFFSITE_BACKUP.md).
+
+- [Independent external public HTTPS uptime observer and disaster-recovery runbook](docs/PRODUCTION_OPERATIONS.md) (opt-in; GitHub Actions is not an uptime SLA)
