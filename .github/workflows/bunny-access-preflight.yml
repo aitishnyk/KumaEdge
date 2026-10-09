@@ -3,8 +3,6 @@ name: Bunny production access preflight
 on:
   push:
     branches: [main]
-    paths:
-      - ".github/workflows/bunny-access-preflight.yml"
   workflow_dispatch:
 
 permissions:
@@ -17,6 +15,7 @@ jobs:
     env:
       HAS_BUNNY_API_KEY: ${{ secrets.BUNNYNET_API_KEY != '' }}
       HAS_BUNNY_APP_ID: ${{ vars.BUNNY_MC_APP_ID != '' }}
+      HAS_BACKUP_MODE: ${{ vars.BUNNY_MC_BACKUP_ENABLED == 'true' }}
     steps:
       - name: Report availability, never print credentials
         shell: bash
@@ -32,6 +31,7 @@ jobs:
           else
             echo "Bunny Magic Containers App ID: not configured" >> "$GITHUB_STEP_SUMMARY"
           fi
+          echo "Optional SQLite backup variant selected: $HAS_BACKUP_MODE" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "This check makes no Bunny API requests, creates no resources, and never outputs secret values." >> "$GITHUB_STEP_SUMMARY"
           if [[ "$HAS_BUNNY_API_KEY" == "true" && "$HAS_BUNNY_APP_ID" == "true" ]]; then

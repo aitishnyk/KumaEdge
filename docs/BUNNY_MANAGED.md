@@ -23,3 +23,5 @@ For upgrades, use the reviewed immutable image tagged with a successful main-bra
 References:
 - https://docs.bunny.net/docs/magic-containers-how-to-deploy-your-app
 - https://github.com/louislam/uptime-kuma/wiki/Reverse-Proxy
+
+For optional backup-worker installs, set `BUNNY_MC_BACKUP_ENABLED=true` in GitHub Actions variables so the protected production deployment updates both `kumaedge` and `sqlite-offsite-backup`. The workflow checks both package tags first; updates are sequential, **not an atomic two-container release**.

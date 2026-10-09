@@ -39,3 +39,7 @@ bash scripts/install-bunny.sh --with-backup
 ```
 
 It securely prompts for the existing Storage Zone WRITE password and the **public** age recipient and selects `infra/bunny-with-backup/` instead of the standard Terraform root. Confirm that both GHCR image packages at the requested SHA were successfully published. This does not create a Storage Zone automatically and still requires an explicit paid Terraform approval.
+
+## Upgrading both managed containers
+
+When the backup sidecar is installed, set the GitHub Actions repository variable `BUNNY_MC_BACKUP_ENABLED=true` and `BUNNY_MC_APP_ID` to the **existing** Bunny app. The protected **Bunny Managed - manual production deploy** workflow then requires both GHCR packages for the requested SHA to exist before changes and updates the `kumaedge` container followed by `sqlite-offsite-backup`. This update is **sequential, not atomic**: a failure of the second action may leave mixed image versions. Check Bunny status and roll back both tags after carefully reviewing database migration compatibility. Do not set the variable for installations without the backup sidecar.

@@ -35,16 +35,30 @@ jobs:
         shell: bash
         env:
           TAG: ${{ inputs.image_tag }}
+          WITH_BACKUP: ${{ vars.BUNNY_MC_BACKUP_ENABLED }}
         run: |
           set -euo pipefail
           repo_lower="${GITHUB_REPOSITORY,,}"
           docker manifest inspect "ghcr.io/$repo_lower:$TAG" > /dev/null || {
-            echo "GHCR image does not exist or is inaccessible"; exit 1;
+            echo "GHCR main image missing/inaccessible"; exit 1;
           }
+          if [[ "${WITH_BACKUP:-}" == "true" ]]; then
+            docker manifest inspect "ghcr.io/${repo_lower}-backup:$TAG" > /dev/null || {
+              echo "GHCR SQLite backup image missing/inaccessible"; exit 1;
+            }
+          fi
       - name: Deploy prebuilt immutable tag to Bunny
         uses: BunnyWay/actions/container-update-image@4b22fe0b319386b3913117daf97729409dd0a6ef
         with:
           app_id: ${{ vars.BUNNY_MC_APP_ID }}
           api_key: ${{ secrets.BUNNYNET_API_KEY }}
           container: kumaedge
+          image_tag: ${{ inputs.image_tag }}
+      - name: Update optional SQLite backup worker to the same tested SHA
+        if: vars.BUNNY_MC_BACKUP_ENABLED == 'true'
+        uses: BunnyWay/actions/container-update-image@4b22fe0b319386b3913117daf97729409dd0a6ef
+        with:
+          app_id: ${{ vars.BUNNY_MC_APP_ID }}
+          api_key: ${{ secrets.BUNNYNET_API_KEY }}
+          container: sqlite-offsite-backup
           image_tag: ${{ inputs.image_tag }}
