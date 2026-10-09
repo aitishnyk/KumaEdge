@@ -88,7 +88,7 @@ variable "backup_storage_region" {
   type        = string
   default     = "de"
   validation {
-    condition = contains(["de","ny","la","sg","syd","jh","uk","se"], var.backup_storage_region)
+    condition     = contains(["de","ny","la","sg","syd","jh","uk","se"], var.backup_storage_region)
     error_message = "Choose a documented Bunny Storage region."
   }
 }
@@ -104,7 +104,7 @@ variable "backup_interval_hours" {
   type        = number
   default     = 24
   validation {
-    condition = floor(var.backup_interval_hours) == var.backup_interval_hours && var.backup_interval_hours >= 6 && var.backup_interval_hours <= 168
+    condition     = floor(var.backup_interval_hours) == var.backup_interval_hours && var.backup_interval_hours >= 6 && var.backup_interval_hours <= 168
     error_message = "Use an integer between 6 and 168."
   }
 }
