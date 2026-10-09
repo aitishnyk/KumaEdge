@@ -3,6 +3,10 @@ on:
   schedule:
     - cron: '19 6 * * *'
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/upstream-watch.yml'
 permissions:
   contents: write
   pull-requests: write
