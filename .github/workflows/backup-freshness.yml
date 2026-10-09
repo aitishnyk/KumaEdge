@@ -1,0 +1,38 @@
+name: KumaEdge - backup freshness monitor
+
+on:
+  schedule:
+    - cron: '13 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    # Opt-in: scheduled runs skip entirely until a private backup variant exists.
+    if: github.event_name == 'workflow_dispatch' || vars.KUMAEDGE_BACKUP_MONITOR_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      KUMAEDGE_STORAGE_ZONE: ${{ vars.KUMAEDGE_STORAGE_ZONE }}
+      KUMAEDGE_STORAGE_REGION: ${{ vars.KUMAEDGE_STORAGE_REGION }}
+      KUMAEDGE_STORAGE_ACCESS_KEY: ${{ secrets.KUMAEDGE_STORAGE_ACCESS_KEY }}
+      MAX_AGE_HOURS: ${{ vars.KUMAEDGE_BACKUP_MAX_AGE_HOURS }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read-only backup freshness check (no Bunny writes)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${KUMAEDGE_STORAGE_ZONE:-}" || -z "${KUMAEDGE_STORAGE_ACCESS_KEY:-}" ]]; then
+            echo "Backup monitor enabled but private Bunny Storage configuration is missing" >&2
+            exit 2
+          fi
+          age="${MAX_AGE_HOURS:-36}"
+          python3 scripts/check-bunny-backups.py --max-age-hours "$age"
+          {
+            echo "## Backup freshness check: PASS"
+            echo "A recent age-encrypted SQLite object is present in private Bunny Storage."
+            echo "**This does not verify decryption, complete volume backups, or real-world restoration.**"
+          } >> "$GITHUB_STEP_SUMMARY"
