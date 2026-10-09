@@ -61,7 +61,7 @@ test("GitHub API failures and missing authenticated evidence always refuse deplo
   await assert.rejects(checkMainRelease(SHA,{
     repo:"aitishnyk/KumaEdge",token:"FAKE",
     request:async()=>({ok:true,json:async()=>({workflow_runs:[{...eligibleRun,event:"pull_request"}]})})
-  }),/No completed/);
+  }),/No successful main push publisher/);
   await assert.rejects(checkMainRelease(SHA,{
     repo:"aitishnyk/KumaEdge",token:"FAKE",
     request:async (url) => ({ok:true,json:async()=> url.pathname.endsWith("/artifacts")
