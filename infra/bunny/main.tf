@@ -40,7 +40,6 @@ resource "bunnynet_compute_container_app" "kumaedge" {
 
       port {
         container = 3001
-        protocols = ["TCP"]
       }
     }
 
