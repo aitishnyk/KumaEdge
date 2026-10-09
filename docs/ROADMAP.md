@@ -53,3 +53,9 @@
 - [x] Operations and disaster-recovery acceptance runbook
 - [ ] Live public URL acceptance from independent runner
 - [ ] Real Bunny monitoring/alert delivery, persistent restart and isolated restore tests
+
+## v0.12 — Real-container full-volume recovery
+- [x] Actual Uptime Kuma Docker database and extra file backed up offline with age
+- [x] Restored into a fresh Docker volume and booted in another Uptime Kuma container
+- [x] Full-volume integrity check blocks GHCR publishing if recovery fails
+- [ ] Real Bunny production export, offsite full-volume storage and isolated restore acceptance

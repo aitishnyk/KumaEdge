@@ -7,6 +7,8 @@ on:
       - 'scripts/bunny-db-backup-worker.py'
       - '.github/workflows/bunny-managed-image.yml'
       - 'scripts/smoke-managed.sh'
+      - 'scripts/smoke-disaster-recovery.sh'
+      - 'scripts/volume-backup.py'
       - 'scripts/check-production.mjs'
       - 'src/acceptance/**'
       - '.github/upstream-state.json'
@@ -18,6 +20,8 @@ on:
       - 'scripts/bunny-db-backup-worker.py'
       - '.github/workflows/bunny-managed-image.yml'
       - 'scripts/smoke-managed.sh'
+      - 'scripts/smoke-disaster-recovery.sh'
+      - 'scripts/volume-backup.py'
       - 'scripts/check-production.mjs'
       - 'src/acceptance/**'
       - '.github/upstream-state.json'
@@ -41,6 +45,12 @@ jobs:
           docker run --rm --entrypoint age kumaedge-backup:smoke --version
       - name: Real HTTP and persistent volume restart smoke
         run: bash scripts/smoke-managed.sh kumaedge:smoke
+      - name: Install age for real-container disaster recovery rehearsal
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y age
+      - name: Encrypted offline full-volume recovery to a NEW Docker volume
+        run: bash scripts/smoke-disaster-recovery.sh kumaedge:smoke
       - name: Determine fork-compatible GHCR repository
         id: registry
         shell: bash
