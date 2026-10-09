@@ -47,3 +47,5 @@ A verified SQLite snapshot is **not** a complete `/app/data` backup or proof of 
 - [Independent external public HTTPS uptime observer and disaster-recovery runbook](docs/PRODUCTION_OPERATIONS.md) (opt-in; GitHub Actions is not an uptime SLA)
 
 - [Real Docker encrypted full-volume restore certification](docs/REAL_DOCKER_DR_ACCEPTANCE.md) (disposable test volumes; not a live Bunny recovery claim)
+
+- [Pinned image digest and upstream security review workflow](docs/IMAGE_UPDATE_POLICY.md) (reviewed PRs; no unapproved production patching)

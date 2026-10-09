@@ -56,14 +56,35 @@ jobs:
         shell: bash
         run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
       - name: Login to GHCR after smoke
-        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Refuse overwriting any published SHA-tagged images
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: image_guard
+        env:
+          IMAGE: ${{ steps.registry.outputs.image }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_present=false
+          worker_present=false
+          if docker manifest inspect "$IMAGE:$GITHUB_SHA" >/dev/null 2>&1; then base_present=true; fi
+          if docker manifest inspect "$IMAGE-backup:$GITHUB_SHA" >/dev/null 2>&1; then worker_present=true; fi
+          if [[ "$base_present" == true && "$worker_present" == true ]]; then
+            echo "::notice::Both SHA-tagged images already exist; skip writes."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          elif [[ "$base_present" == true || "$worker_present" == true ]]; then
+            echo "::error::Partial release detected. Never overwrite an existing SHA-tagged image."
+            exit 1
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Tag and publish the EXACT tested image
-        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.image_guard.outputs.publish == 'true'
         env:
           IMAGE: ${{ steps.registry.outputs.image }}
         shell: bash
