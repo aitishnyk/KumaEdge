@@ -57,7 +57,6 @@ variable "image_name" {
 variable "image_tag" {
   description = "Exact, previously CI-tested 40-character Git SHA of a published image."
   type        = string
-  default     = "213b2121fc88ee2a49309a82b5f9d046ca167234"
 
   validation {
     condition     = can(regex("^[0-9a-f]{40}$", var.image_tag))

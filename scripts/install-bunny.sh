@@ -32,6 +32,18 @@ if [[ -z "${TF_VAR_ghcr_username:-}" ]]; then
   read -r -p "GitHub registry username: " TF_VAR_ghcr_username
 fi
 
+# Refuse to silently install an outdated, hard-coded image tag.
+# Only use the exact SHA printed by a successful main-branch GHCR publish.
+if [[ -z "${TF_VAR_image_tag:-}" ]]; then
+  echo "Open https://github.com/aitishnyk/KumaEdge/actions/workflows/bunny-managed-image.yml"
+  read -r -p "Enter a successfully published image tag (40-character commit SHA): " TF_VAR_image_tag
+fi
+if [[ ! "$TF_VAR_image_tag" =~ ^[a-f0-9]{40}$ ]]; then
+  echo "Expected a verified published 40-character lowercase SHA; no resources created." >&2
+  exit 2
+fi
+export TF_VAR_image_tag
+
 if [[ -z "$BUNNYNET_API_KEY" || -z "$TF_VAR_ghcr_read_token" || -z "$TF_VAR_ghcr_username" ]]; then
   echo "Missing credentials or registry username; no resources created." >&2
   exit 2
@@ -41,7 +53,7 @@ export BUNNYNET_API_KEY TF_VAR_ghcr_read_token TF_VAR_ghcr_username
 plan="$(mktemp "$root/.kumaedge-plan.XXXXXXXX")"
 cleanup() {
   rm -f -- "$plan"
-  unset BUNNYNET_API_KEY TF_VAR_ghcr_read_token TF_VAR_ghcr_username
+  unset BUNNYNET_API_KEY TF_VAR_ghcr_read_token TF_VAR_ghcr_username TF_VAR_image_tag
 }
 trap cleanup EXIT
 
