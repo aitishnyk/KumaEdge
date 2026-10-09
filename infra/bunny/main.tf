@@ -23,11 +23,11 @@ resource "bunnynet_compute_container_app" "kumaedge" {
   regions_max_allowed = 1
 
   container {
-    name            = "kumaedge"
-    image_registry  = bunnynet_compute_container_imageregistry.ghcr.id
-    image_namespace = var.image_namespace
-    image_name      = var.image_name
-    image_tag       = var.image_tag
+    name              = "kumaedge"
+    image_registry    = bunnynet_compute_container_imageregistry.ghcr.id
+    image_namespace   = var.image_namespace
+    image_name        = var.image_name
+    image_tag         = var.image_tag
     image_pull_policy = "IfNotPresent"
 
     endpoint {
