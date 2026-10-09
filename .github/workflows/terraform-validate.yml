@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'infra/bunny/**'
+      - 'infra/bunny-with-backup/**'
       - '.github/workflows/terraform-validate.yml'
       - '.gitignore'
   push:
@@ -21,15 +22,19 @@ jobs:
   terraform-static:
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [infra/bunny, infra/bunny-with-backup]
     defaults:
       run:
-        working-directory: infra/bunny
+        working-directory: ${{ matrix.module }}
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: '1.13.3'
-      - name: Terraform format check
+      - name: Terraform format check for both deployment variants
         run: terraform fmt -diff -check -recursive
       - name: Provider initialization (no backend)
         run: terraform init -backend=false -input=false

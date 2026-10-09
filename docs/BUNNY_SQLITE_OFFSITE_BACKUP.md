@@ -9,7 +9,7 @@ Bunny Magic Containers can host several containers in the same pod with a shared
 1. Create a dedicated **private** Bunny Storage Zone in the Bunny dashboard, preferably without a public Pull Zone. Obtain that Zone's WRITE password; **do not use the Bunny account API key**. Pick its primary region code.
 2. Generate an `age` keypair on a **trusted offline workstation**. Keep the private identity there; only the `age1...` public recipient goes to the container.
 3. Ensure a successful main-branch CI workflow published **both** `ghcr.io/<owner>/kumaedge:<sha>` and `ghcr.io/<owner>/kumaedge-backup:<sha>`, and Bunny's registry identity can pull both.
-4. Set Terraform `enable_sqlite_offsite_backup=true`, `backup_storage_zone`, `backup_storage_access_key`, `backup_storage_region`, `backup_age_recipient`, and optionally `backup_interval_hours=24`. Use protected `TF_VAR_...` secrets, never commit a real tfvars file. **Terraform state may contain the Storage Zone password** and must have an encrypted access-controlled state backend.
+4. For a NEW INSTALL, use the separate `infra/bunny-with-backup/` Terraform root instead of `infra/bunny/`. Set `backup_storage_zone`, `backup_storage_access_key`, `backup_storage_region`, `backup_age_recipient`, and optionally `backup_interval_hours=24`. Do **not** apply both roots to the same app. Use protected `TF_VAR_...` secrets, never commit a real tfvars file. **Terraform state may contain the Storage Zone password** and must have an encrypted access-controlled state backend.
 5. Review `terraform plan`; apply with explicit approval. The sidecar mounts the same volume and exposes no public endpoint. Live deployment has **not been tested** from this chat.
 
 ## Expected behavior
@@ -25,3 +25,7 @@ Bunny Magic Containers can host several containers in the same pod with a shared
 This implementation requires a production deployment and an independently verified restore using your *age private identity*. It cannot guarantee recovery from a lost full volume because uploaded files and non-DB state may exist outside `kuma.db`. Monitoring and alerting for stalled backups, retention deletion, remote disaster recovery, registry access and security review remain operational release gates.
 
 No Bunny credentials or production infrastructure are connected in this conversation. Synthetic tests and provider validation do not equal a live cloud deployment.
+
+## Separate opt-in Terraform root
+
+The Bunny provider currently rejects Terraform `dynamic "container"` blocks during its custom config validation, even when the original app has a regular container block. Rather than risk existing users, the ordinary `infra/bunny/` configuration remains byte-identical. Use `infra/bunny-with-backup/` only for **new installs** and run `terraform init`, `terraform validate`, `terraform plan`, and `terraform apply` from that directory. This second root includes the regular Uptime Kuma container and one optional-feature SQLite backup sidecar as two static container blocks. Both images must be published at the chosen SHA first. Existing installs must carefully migrate Terraform state and review the plan before switching roots; do not use an empty second state on an already deployed app.

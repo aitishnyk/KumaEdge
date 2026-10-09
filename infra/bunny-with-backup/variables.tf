@@ -63,3 +63,42 @@ variable "image_tag" {
     error_message = "image_tag must be an immutable 40-character lowercase Git SHA."
   }
 }
+
+variable "backup_storage_zone" {
+  description = "Existing private Bunny Storage Zone for encrypted backups (no Pull Zone)."
+  type        = string
+  default     = ""
+}
+
+variable "backup_storage_access_key" {
+  description = "Existing Storage Zone write password, NOT account API key; stored in sensitive Terraform state."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "backup_storage_region" {
+  description = "Primary region of the existing Bunny Storage Zone."
+  type        = string
+  default     = "de"
+  validation {
+    condition     = contains(["de", "ny", "la", "sg", "syd", "jh", "uk", "se"], var.backup_storage_region)
+    error_message = "Choose a documented Bunny Storage region."
+  }
+}
+
+variable "backup_age_recipient" {
+  description = "age public recipient; private identity must be stored offline."
+  type        = string
+  default     = ""
+}
+
+variable "backup_interval_hours" {
+  description = "Interval between completed SQLite snapshot attempts."
+  type        = number
+  default     = 24
+  validation {
+    condition     = floor(var.backup_interval_hours) == var.backup_interval_hours && var.backup_interval_hours >= 6 && var.backup_interval_hours <= 168
+    error_message = "Use an integer between 6 and 168."
+  }
+}
