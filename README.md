@@ -41,3 +41,5 @@ A verified SQLite snapshot is **not** a complete `/app/data` backup or proof of 
 **Important:** KumaEdge is currently an independent repository, not a GitHub-native fork. The managed image uses original [Uptime Kuma](https://github.com/louislam/uptime-kuma) v2 under MIT; it is not a rewritten backend or an officially endorsed Bunny/Uptime Kuma product. The published GHCR image and local Docker persistence smoke checks do **not** certify a live deployment on any Bunny account.
 
 - [Optional automated age-encrypted Bunny Storage backups of SQLite (not full volume)](docs/BUNNY_SQLITE_OFFSITE_BACKUP.md)
+
+**New installation with the optional encrypted SQLite offsite worker:** `bash scripts/install-bunny.sh --with-backup`. This variant requires a private Bunny Storage Zone and an age public recipient; see [the backup guide](docs/BUNNY_SQLITE_OFFSITE_BACKUP.md).

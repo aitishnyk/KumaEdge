@@ -11,7 +11,21 @@ if ! command -v terraform >/dev/null 2>&1; then
   echo "Terraform 1.5+ is required. See https://developer.hashicorp.com/terraform/install" >&2
   exit 2
 fi
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../infra/bunny" && pwd)"
+backup_mode=false
+case "${1:-}" in
+  "") ;;
+  "--with-backup") backup_mode=true ;;
+  "--help"|"help")
+    echo "Usage: bash scripts/install-bunny.sh [--with-backup]"
+    exit 0
+    ;;
+  *) echo "Unknown option: $1" >&2; exit 2 ;;
+esac
+if [[ "$backup_mode" == "true" ]]; then
+  root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../infra/bunny-with-backup" && pwd)"
+else
+  root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../infra/bunny" && pwd)"
+fi
 cd "$root"
 umask 077
 
@@ -48,12 +62,33 @@ if [[ -z "$BUNNYNET_API_KEY" || -z "$TF_VAR_ghcr_read_token" || -z "$TF_VAR_ghcr
   echo "Missing credentials or registry username; no resources created." >&2
   exit 2
 fi
+if [[ "$backup_mode" == "true" ]]; then
+  echo "Optional backup sidecar adds a second container and needs an EXISTING private Bunny Storage Zone."
+  echo "Only SQLite is backed up online. All Terraform state and credentials remain your responsibility."
+  if [[ -z "${TF_VAR_backup_storage_zone:-}" ]]; then
+    read -r -p "Existing private Bunny Storage Zone name: " TF_VAR_backup_storage_zone
+  fi
+  if [[ -z "${TF_VAR_backup_storage_access_key:-}" ]]; then
+    read -r -s -p "Storage Zone write password (input hidden): " TF_VAR_backup_storage_access_key
+    echo
+  fi
+  if [[ -z "${TF_VAR_backup_age_recipient:-}" ]]; then
+    read -r -p "age PUBLIC recipient (age1...): " TF_VAR_backup_age_recipient
+  fi
+  if [[ -z "${TF_VAR_backup_storage_zone:-}" || -z "${TF_VAR_backup_storage_access_key:-}" ||
+        ! "${TF_VAR_backup_age_recipient:-}" =~ ^age1[023456789acdefghjklmnpqrstuvwxyz]{25,130}$ ]]; then
+    echo "Missing/invalid SQLite backup configuration. Nothing created." >&2
+    exit 2
+  fi
+  export TF_VAR_backup_storage_zone TF_VAR_backup_storage_access_key TF_VAR_backup_age_recipient
+  echo "IMPORTANT: confirm both the main and backup GHCR images exist for the SHA selected."
+fi
 export BUNNYNET_API_KEY TF_VAR_ghcr_read_token TF_VAR_ghcr_username
 
 plan="$(mktemp "$root/.kumaedge-plan.XXXXXXXX")"
 cleanup() {
   rm -f -- "$plan"
-  unset BUNNYNET_API_KEY TF_VAR_ghcr_read_token TF_VAR_ghcr_username TF_VAR_image_tag
+  unset BUNNYNET_API_KEY TF_VAR_ghcr_read_token TF_VAR_ghcr_username TF_VAR_image_tag TF_VAR_backup_storage_zone TF_VAR_backup_storage_access_key TF_VAR_backup_age_recipient
 }
 trap cleanup EXIT
 

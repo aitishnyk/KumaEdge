@@ -29,3 +29,13 @@ No Bunny credentials or production infrastructure are connected in this conversa
 ## Separate opt-in Terraform root
 
 The Bunny provider currently rejects Terraform `dynamic "container"` blocks during its custom config validation, even when the original app has a regular container block. Rather than risk existing users, the ordinary `infra/bunny/` configuration remains byte-identical. Use `infra/bunny-with-backup/` only for **new installs** and run `terraform init`, `terraform validate`, `terraform plan`, and `terraform apply` from that directory. This second root includes the regular Uptime Kuma container and one optional-feature SQLite backup sidecar as two static container blocks. Both images must be published at the chosen SHA first. Existing installs must carefully migrate Terraform state and review the plan before switching roots; do not use an empty second state on an already deployed app.
+
+## Interactive install
+
+For a **new installation**, the existing interactive installer also supports:
+
+```sh
+bash scripts/install-bunny.sh --with-backup
+```
+
+It securely prompts for the existing Storage Zone WRITE password and the **public** age recipient and selects `infra/bunny-with-backup/` instead of the standard Terraform root. Confirm that both GHCR image packages at the requested SHA were successfully published. This does not create a Storage Zone automatically and still requires an explicit paid Terraform approval.
