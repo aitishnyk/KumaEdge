@@ -27,6 +27,8 @@ on:
       - 'scripts/check-production.mjs'
       - 'src/acceptance/**'
       - '.github/upstream-state.json'
+      - 'scripts/guard-ghcr-publish.mjs'
+      - 'scripts/verify-release-provenance.mjs'
   schedule:
     - cron: '37 5 * * *'
   workflow_dispatch:

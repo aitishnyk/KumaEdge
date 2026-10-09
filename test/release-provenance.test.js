@@ -66,6 +66,11 @@ test("unambiguous missing manifests differ from registry failure or authenticati
   assert.equal(classifyManifest({status:0,stderr:""}),"present");
   assert.equal(classifyManifest({status:1,stderr:"no such manifest: fake:tag"}),"missing");
   assert.equal(classifyManifest({status:1,stderr:"manifest unknown: fake:tag"}),"missing");
+  assert.equal(classifyManifest({status:1,stderr:"Error response from daemon: no such manifest: fake:tag"}),"missing");
+  assert.equal(classifyManifest({status:1,stderr:"Error response from daemon: manifest unknown: manifest unknown"}),"missing");
+  assert.equal(classifyManifest({status:1,stderr:"Error parsing HTTP 404: MANIFEST_UNKNOWN"}),"missing");
+  assert.throws(()=>classifyManifest({status:1,stderr:"manifest unknown; unauthorized 401"}),/safely/);
+
   for(const stderr of [
     "unauthorized: authentication required",
     "denied: access forbidden",
@@ -73,7 +78,6 @@ test("unambiguous missing manifests differ from registry failure or authenticati
     "context deadline exceeded",
     "429 Too Many Requests",
     "404 page not found",
-    "Error: no such manifest: fake:tag",
     ""
   ]) {
     assert.throws(()=>classifyManifest({status:1,stderr}),/safely/);
