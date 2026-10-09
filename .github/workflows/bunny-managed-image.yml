@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'Dockerfile'
+      - 'Dockerfile.backup'
+      - 'scripts/bunny-db-backup-worker.py'
       - '.github/workflows/bunny-managed-image.yml'
       - 'scripts/smoke-managed.sh'
       - 'scripts/check-production.mjs'
@@ -12,6 +14,8 @@ on:
     branches: [main]
     paths:
       - 'Dockerfile'
+      - 'Dockerfile.backup'
+      - 'scripts/bunny-db-backup-worker.py'
       - '.github/workflows/bunny-managed-image.yml'
       - 'scripts/smoke-managed.sh'
       - 'scripts/check-production.mjs'
@@ -31,6 +35,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Pull and build upstream runtime
         run: docker build --pull -t kumaedge:smoke .
+      - name: Build optional encrypted backup sidecar
+        run: |
+          docker build --pull -f Dockerfile.backup -t kumaedge-backup:smoke .
+          docker run --rm --entrypoint age kumaedge-backup:smoke --version
       - name: Real HTTP and persistent volume restart smoke
         run: bash scripts/smoke-managed.sh kumaedge:smoke
       - name: Determine fork-compatible GHCR repository
@@ -53,3 +61,6 @@ jobs:
           set -euo pipefail
           docker tag kumaedge:smoke "$IMAGE:$GITHUB_SHA"
           docker push "$IMAGE:$GITHUB_SHA"
+          BACKUP_IMAGE="${IMAGE}-backup"
+          docker tag kumaedge-backup:smoke "$BACKUP_IMAGE:$GITHUB_SHA"
+          docker push "$BACKUP_IMAGE:$GITHUB_SHA"

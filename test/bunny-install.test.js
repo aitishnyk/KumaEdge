@@ -13,6 +13,9 @@ test("Bunny install script passes bash syntax and has explicit paid apply consen
   assert.match(text,/terraform apply -input=false/);
   assert.match(text,/umask 077/);
   assert.match(text,/TF_VAR_image_tag/);
+  assert.match(text,/--with-backup/);
+  assert.match(text,/TF_VAR_backup_storage_access_key/);
+  assert.match(text,/TF_VAR_backup_age_recipient/);
   assert.match(text,/40-character commit SHA/);
   assert.equal(text.includes(String.raw`\${`), false, "shell variables must not be escaped as literals");
   assert.doesNotMatch(text,/terraform apply[^\n]*-auto-approve/);
