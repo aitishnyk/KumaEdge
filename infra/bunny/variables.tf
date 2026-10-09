@@ -88,7 +88,7 @@ variable "backup_storage_region" {
   type        = string
   default     = "de"
   validation {
-    condition     = contains(["de","ny","la","sg","syd","jh","uk","se"], var.backup_storage_region)
+    condition     = contains(["de", "ny", "la", "sg", "syd", "jh", "uk", "se"], var.backup_storage_region)
     error_message = "Choose a documented Bunny Storage region."
   }
 }
