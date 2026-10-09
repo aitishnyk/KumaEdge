@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Deploy standalone script to Bunny
-        uses: BunnyWay/actions/deploy-script@main
+        uses: BunnyWay/actions/deploy-script@4b22fe0b319386b3913117daf97729409dd0a6ef
         with:
           script_id: ${{ secrets.BUNNY_SCRIPT_ID }}
           deploy_key: ${{ secrets.BUNNY_DEPLOY_KEY }}

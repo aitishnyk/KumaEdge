@@ -2,21 +2,30 @@
 
 **Run Uptime Kuma on Bunny.net without managing your own VPS.**
 
-Open-source MIT project with two deployment modes:
+A public MIT-licensed project with two tracks:
 
 | Mode | Status | Runtime |
 | --- | --- | --- |
-| **Bunny Managed** | Full upstream Uptime Kuma image, deployment scripts and Docker smoke suite; live Bunny verification required | Bunny Magic Containers, persistent /app/data volume |
-| **Bunny Edge Preview** | Limited to manual checks on configured endpoints | Standalone Edge Script; no scheduler, DB, incidents or alerts |
+| **Bunny Managed** | Upstream Uptime Kuma v2 in a tested Docker image; Terraform installer; live Bunny acceptance required | Paid single-region Bunny Magic Container with persistent SQLite volume |
+| **Bunny Edge Preview** | Manual checks only. No background scheduler, persistent history or alerts yet | Stateless Bunny Edge Script |
 
-### Start with the full product
+## Easy installation for Bunny Managed
 
-**[Bunny Managed setup guide](docs/BUNNY_MANAGED.md)** — one region, one replica, persistent volume at `/app/data`, image `ghcr.io/aitishnyk/kumaedge:<SHA>` from the successful GitHub Actions build. Once configured, Uptime Kuma provides the full web interface, 24/7 monitoring, notifications, status pages and history without a VPS.
+**[Complete installation guide](docs/BUNNY_TERRAFORM.md)** · [Bunny Manual Setup](docs/BUNNY_MANAGED.md)
 
-- Build/test/publish: `.github/workflows/bunny-managed-image.yml`
-- Deploy reviewed image: `.github/workflows/deploy-managed.yml`
-- On-demand serverless preview: [Bunny Edge guide](docs/BUNNY_DEPLOY.md)
+1. Install Terraform 1.5+. Clone this repository.
+2. Obtain your Bunny account API key and a GitHub `read:packages` token that can pull the KumaEdge container image. Never paste credentials into a public issue or chat.
+3. From a **trusted personal terminal**, run `bash scripts/install-bunny.sh`. The script securely prompts for credentials, shows an infrastructure plan and **requires explicit paid-deployment approval**.
+4. After provisioning, verify CDN caching is disabled for logged-in/dynamic routes, HTTPS, WebSocket, data persistence on restarts and alerts. Configure a protected production environment and `BUNNY_MC_APP_ID` for later image updates.
 
-**KumaEdge is an independent repository, not an official GitHub fork or an affiliate of Uptime Kuma or Bunny.net.** The managed image uses the official [Uptime Kuma](https://github.com/louislam/uptime-kuma), which is MIT-licensed, and preserves its original application and copyright notices. Edge-specific code is developed separately. Security updates are tracked, reviewed and incorporated via tested upstream images; no promise of unattended patching or zero downtime.
+The installer provisions one region, one replica, and persistent storage at `/app/data`. It never runs automatically in CI, never uploads Terraform state, and does not hide cloud charges. Local Terraform state must be securely kept and backed up.
 
-[Security](SECURITY.md) · [Contributing](CONTRIBUTING.md) · [Roadmap](docs/ROADMAP.md) · [MIT License](LICENSE)
+## Updating and contributing
+
+- [Container build and smoke tests](.github/workflows/bunny-managed-image.yml)
+- [Terraform configuration and validation](infra/bunny/)
+- [Manual reviewed production image rollout](.github/workflows/deploy-managed.yml)
+- [Edge-only demo](docs/BUNNY_DEPLOY.md)
+- [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [MIT License](LICENSE)
+
+**Important:** KumaEdge is currently an independent repository, not a GitHub-native fork. The managed image uses original [Uptime Kuma](https://github.com/louislam/uptime-kuma) v2 under MIT; it is not a rewritten backend or an officially endorsed Bunny/Uptime Kuma product. The published GHCR image and local Docker persistence smoke checks do **not** certify a live deployment on any Bunny account.
