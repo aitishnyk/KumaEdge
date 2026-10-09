@@ -34,4 +34,4 @@ Verification checks an encrypted age envelope, per-file SHA-256 manifest and pat
 - `KUMAEDGE_APP_STOPPED=yes` is an **operator assertion**, not an automated check. Do not set it while Uptime Kuma runs. For a live database, use the separate SQLite snapshot utility for partial database-only backups, not this full-volume tool.
 - Files larger than 20 GiB, total volumes above 100 GiB, and directories with over 100,000 entries are rejected.
 - The age identity and Terraform state must be backed up independently in a secure location. Loss of the private age identity makes the archive undecryptable.
-- A live Bunny export mechanism, scheduled automated offsite backups, age CLI end-to-end integration and production restore acceptance still require deployment environment access. The committed unit tests validate archive logic with synthetic data.
+- A live Bunny export mechanism, scheduled automated offsite backups, real Bunny production restore acceptance still requires deployment environment access. The committed unit tests validate archive logic with synthetic data.

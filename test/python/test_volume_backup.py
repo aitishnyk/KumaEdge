@@ -47,6 +47,12 @@ class VolumeBackupTests(unittest.TestCase):
         with self.assertRaises(module.UnsafeArchive):
             self.archive()
 
+    def test_source_root_symlink_refused(self):
+        alias = self.root / "alias"
+        alias.symlink_to(self.volume)
+        with self.assertRaises(module.UnsafeArchive):
+            module.pack(alias, io.BytesIO())
+
     def test_wrong_checksum_rejected(self):
         original = self.archive()
         mutated = io.BytesIO()

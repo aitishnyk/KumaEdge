@@ -25,6 +25,7 @@ The installer provisions one region, one replica, and persistent storage at `/ap
 - Public HTTPS and Engine.IO acceptance: `node scripts/check-production.mjs --url https://your-monitor-host`
 - Post-install read-only [production acceptance workflow](.github/workflows/production-acceptance.yml): configure `KUMAEDGE_PUBLIC_URL` as a GitHub Actions variable and run manually. This checks HTTPS/cache/WebSocket only; it does not certify account state or backups.
 - SQLite verified local snapshots: `python3 scripts/sqlite-snapshot.py /path/to/kuma.db /private/backup/kuma-YYYYMMDD.db`
+- [Encrypted offline full-volume backup and safe restore](docs/FULL_VOLUME_BACKUP.md) (requires a stopped writer and authorized filesystem access)
 - [Backup and full restore limitations](docs/BACKUP_AND_RECOVERY.md)
 
 A verified SQLite snapshot is **not** a complete `/app/data` backup or proof of disaster recovery on Bunny. Public production access still requires HTTPS and a no-shared-cache frontend.

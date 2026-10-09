@@ -73,6 +73,8 @@ class DigestReader:
 
 
 def pack(root, stream):
+    if root.is_symlink():
+        raise UnsafeArchive("Source symlink forbidden")
     root = root.resolve()
     dirs, files = entries(root)
     directory_manifest = []
