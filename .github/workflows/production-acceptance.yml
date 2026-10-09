@@ -1,26 +1,34 @@
-name: Bunny production - public HTTPS and Engine.IO acceptance
+name: KumaEdge - Public Production Acceptance
+
 on:
   workflow_dispatch:
-    inputs:
-      public_url:
-        description: 'Public HTTPS origin (NO credentials, query or fragment)'
-        required: true
-        type: string
+
 permissions:
   contents: read
+
 jobs:
-  public-acceptance:
+  audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 7
+    environment: production
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify public endpoint transport and cache safeguards
+      - name: Read-only HTTPS, polling, and WebSocket audit
         env:
-          KUMAEDGE_PUBLIC_URL: ${{ inputs.public_url }}
-        run: node scripts/check-production.mjs --url "$KUMAEDGE_PUBLIC_URL" --mode production
-      - name: Additional acceptance still required
+          KUMAEDGE_PUBLIC_URL: ${{ vars.KUMAEDGE_PUBLIC_URL }}
+        shell: bash
         run: |
-          echo 'Transport and caching only. Manually confirm admin 2FA, volume state after restart, incident notifications and backup restore.' >> "$GITHUB_STEP_SUMMARY"
+          set -euo pipefail
+          if [[ -z "${KUMAEDGE_PUBLIC_URL:-}" ]]; then
+            echo "Set the KUMAEDGE_PUBLIC_URL GitHub Actions variable first." >&2
+            exit 2
+          fi
+          node scripts/check-production.mjs --url "$KUMAEDGE_PUBLIC_URL"
+          {
+            echo "## Read-only public transport audit passed"
+            echo "- HTTPS, HTML and Engine.IO polling cache policy, and real WebSocket handshake passed."
+            echo "- **Not verified by this workflow:** login, 2FA, monitoring 24/7, alerts, persistence after restart, backups/restore."
+          } >> "$GITHUB_STEP_SUMMARY"
