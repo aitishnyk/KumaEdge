@@ -43,3 +43,13 @@ It securely prompts for the existing Storage Zone WRITE password and the **publi
 ## Upgrading both managed containers
 
 When the backup sidecar is installed, set the GitHub Actions repository variable `BUNNY_MC_BACKUP_ENABLED=true` and `BUNNY_MC_APP_ID` to the **existing** Bunny app. The protected **Bunny Managed - manual production deploy** workflow then requires both GHCR packages for the requested SHA to exist before changes and updates the `kumaedge` container followed by `sqlite-offsite-backup`. This update is **sequential, not atomic**: a failure of the second action may leave mixed image versions. Check Bunny status and roll back both tags after carefully reviewing database migration compatibility. Do not set the variable for installations without the backup sidecar.
+
+## Offline verified SQLite restoration (v0.8)
+
+Download a specific encrypted `.db.age` object from your **private** Bunny Storage Zone into a trusted operator computer, without exposing the zone key or private age identity in chat, GitHub or logs. Record the SHA-256 ciphertext digest printed by a successful worker backup. Run:
+
+```sh
+python3 scripts/restore-bunny-sqlite.py /private/backup.db.age /private/age-identity.txt /private/recovery/kuma-restored.db --expected-sha256 YOUR_64_CHAR_SHA256
+```
+
+The command verifies the SHA-256 receipt (when provided), authenticates/decrypts age in a protected temporary directory, verifies full SQLite integrity and schema, and publishes the verified result **only at a new path**. It never overwrites the current `/app/data/kuma.db`. Before recovery into a new deployment, ensure compatible Uptime Kuma schema, restore other required files from a full-volume archive, keep an isolated test instance and verify login/2FA/alerts. This utility does not claim to download from Bunny by itself and is not a live-volume disaster-recovery automation.
