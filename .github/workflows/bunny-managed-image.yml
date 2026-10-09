@@ -5,6 +5,8 @@ on:
       - 'Dockerfile'
       - '.github/workflows/bunny-managed-image.yml'
       - 'scripts/smoke-managed.sh'
+      - 'scripts/check-production.mjs'
+      - 'src/acceptance/**'
       - '.github/upstream-state.json'
   push:
     branches: [main]
@@ -12,6 +14,8 @@ on:
       - 'Dockerfile'
       - '.github/workflows/bunny-managed-image.yml'
       - 'scripts/smoke-managed.sh'
+      - 'scripts/check-production.mjs'
+      - 'src/acceptance/**'
       - '.github/upstream-state.json'
   schedule:
     - cron: '37 5 * * *'

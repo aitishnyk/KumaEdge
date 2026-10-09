@@ -1,6 +1,6 @@
 # KumaEdge Bunny Managed Installation
 
-KumaEdge Bunny Managed runs the **full original Uptime Kuma v2** monitoring engine, notification providers, incident history and browser interface on a **paid** Bunny Magic Containers instance. No self-managed VPS is needed, but a paid running container and durable volume are required.
+KumaEdge Bunny Managed defaults to SQLite via the supported `UPTIME_KUMA_DB_TYPE=sqlite` environment variable, bypassing the initial database-type picker on a fresh volume. **Do not reuse this image for an existing MariaDB installation without adjusting the configuration and migration plan.**\n\nKumaEdge Bunny Managed runs the **full original Uptime Kuma v2** monitoring engine, notification providers, incident history and browser interface on a **paid** Bunny Magic Containers instance. No self-managed VPS is needed, but a paid running container and durable volume are required.
 
 ## Recommended provisioning
 
@@ -29,7 +29,7 @@ The manual update workflow validates the image's exact 40-hex SHA, confirms its 
 
 ## Live checks required
 
-Verify the public endpoint with HTTPS; test browser login + Socket.IO transport; disable CDN shared caching for sessions, API, HTML and dynamic status; enable 2FA; test actual down/recovered alerts and SQLite state after a container restart; preserve private encrypted backups.
+The default Anycast endpoint does not itself guarantee TLS; provide an HTTPS front door before entering credentials. Run `node scripts/check-production.mjs --url https://your-public-host` for a fail-closed anonymous transport and cache audit. Verify the public endpoint with HTTPS; test browser login + Socket.IO transport; disable CDN shared caching for sessions, API, HTML and dynamic status; enable 2FA; test actual down/recovered alerts and SQLite state after a container restart; preserve private encrypted backups.
 
 The Terraform provider's successful schema validation and GitHub Docker smoke are **not** evidence that live Bunny account integration has run.
 
