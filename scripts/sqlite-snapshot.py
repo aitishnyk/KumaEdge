@@ -43,7 +43,8 @@ def snapshot(source: str, output: str) -> tuple[int, str]:
                     raise RuntimeError("Snapshot SQLite integrity check failed")
         if dest.exists() or dest.is_symlink():
             raise FileExistsError("Destination created while snapshot was running")
-        os.replace(tmp, dest)
+        # Creating a hard link is atomic and fails if destination already exists.
+        os.link(tmp, dest)
         digest = hashlib.sha256()
         with dest.open("rb") as f:
             for chunk in iter(lambda: f.read(1024 * 1024), b""):

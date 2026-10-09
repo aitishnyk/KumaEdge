@@ -10,7 +10,7 @@ If you have legitimate filesystem-level access to the volume, use:
 python3 scripts/sqlite-snapshot.py /app/data/kuma.db /private/backups/kuma-YYYYMMDD.db
 ```
 
-The script uses SQLite's own online backup API, which correctly includes committed WAL transactions. It writes an owner-only temporary copy in the destination directory, verifies SQLite integrity and atomically renames it to a new filename. It never overwrites an existing snapshot and prints SHA-256.
+The script uses SQLite's own online backup API, which correctly includes committed WAL transactions. It writes an owner-only temporary copy in the destination directory, verifies SQLite integrity and atomically creates a new backup file without overwriting an existing path. It never overwrites an existing snapshot and prints SHA-256.
 
 **This tool cannot directly connect to Bunny volume storage.** Do not claim that running it locally accesses Bunny Magic Containers. Your operator must provide a supported secure volume-access/backup mechanism. The repository does not yet provision an automated Bunny offsite backup service.
 

@@ -20,6 +20,14 @@ A public MIT-licensed project with two tracks:
 
 The installer provisions one region, one replica, and persistent storage at `/app/data`. It never runs automatically in CI, never uploads Terraform state, and does not hide cloud charges. Local Terraform state must be securely kept and backed up.
 
+## Operational checks and backups
+
+- Public HTTPS and Engine.IO acceptance: `node scripts/check-production.mjs --url https://your-monitor-host`
+- SQLite verified local snapshots: `python3 scripts/sqlite-snapshot.py /path/to/kuma.db /private/backup/kuma-YYYYMMDD.db`
+- [Backup and full restore limitations](docs/BACKUP_AND_RECOVERY.md)
+
+A verified SQLite snapshot is **not** a complete `/app/data` backup or proof of disaster recovery on Bunny. Public production access still requires HTTPS and a no-shared-cache frontend.
+
 ## Updating and contributing
 
 - [Container build and smoke tests](.github/workflows/bunny-managed-image.yml)
