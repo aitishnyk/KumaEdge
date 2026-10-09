@@ -30,3 +30,15 @@ The test does not prove the absence of caching across all routes or authenticate
 8. Keep production deployment behind an explicitly approved GitHub Actions environment. Validate successful smoke again after each upstream patch/upgrade.
 
 Do not treat a successful unauthenticated audit as permission to enable public signups or serve authenticated content through a shared cache.
+
+## Front door transport-hardening (v0.10)
+
+The default Terraform configuration uses **Anycast TCP** for port 3001. This **does not establish trusted HTTPS**, and admin credentials must not be entered into plain HTTP. Bunny Magic Containers also supports CDN endpoints, which can provide a managed `bunny.run` hostname, but dynamic authenticated Uptime Kuma content must never be served from a shared cache. Verify login/cookie/cache behavior and WebSocket upgrades with a real account before public launch. See [Bunny official endpoint instructions](https://docs.bunny.net/docs/magic-containers-how-to-deploy-your-app).
+
+Once a trusted HTTPS front door and session-safe cache rules are configured, run:
+
+```sh
+node scripts/check-production.mjs --url https://YOUR_TRUSTED_HOST --require-hsts
+```
+
+The optional `--require-hsts` check fails unless the HTML response contains a `Strict-Transport-Security` directive with at least one year of `max-age`. HSTS is an optional deployment gate, not silently inserted by the app; configure it **only after HTTPS works correctly** for the host. Avoid indiscriminate `includeSubDomains` and `preload`, especially for hostnames you do not control. In GitHub Actions, set `KUMAEDGE_REQUIRE_HSTS=true` to enable this additional check in the read-only acceptance workflow. HSTS on one response does not prove complete transport/session security, and a successful audit still requires operator verification of authenticated sessions, 2FA and data durability.

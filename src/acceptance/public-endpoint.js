@@ -35,6 +35,22 @@ export function reviewCacheHeaders(headers) {
   };
 }
 
+/** HSTS is a deployment-level defense, separate from HTTPS and cache safety. */
+export function reviewHsts(headers, { minAgeSeconds = 31536000 } = {}) {
+  const header = headers.get("strict-transport-security") || "";
+  const directives = header.split(";").map(x => x.trim()).filter(Boolean);
+  const ages = directives
+    .map(x => /^max-age\s*=\s*"?([0-9]+)"?$/i.exec(x))
+    .filter(Boolean)
+    .map(x => Number(x[1]));
+  const age = ages.length === 1 && Number.isSafeInteger(ages[0]) ? ages[0] : null;
+  return {
+    present: header.length > 0,
+    maxAgeSeconds: age,
+    strong: age !== null && age >= minAgeSeconds,
+  };
+}
+
 export function isEngineIOHandshake(status, body) {
   if (status !== 200 || typeof body !== "string" || !body.startsWith("0{")) return false;
   try {
@@ -105,7 +121,7 @@ export async function auditWebSocket(origin, { WebSocketImpl = globalThis.WebSoc
 
 export async function auditEndpoint(url, {
   allowLocalHttp = false, mode = "production", fetchImpl = fetch,
-  WebSocketImpl = globalThis.WebSocket
+  WebSocketImpl = globalThis.WebSocket, requireHsts = false
 } = {}) {
   if (!["production", "smoke"].includes(mode)) throw new TypeError("Invalid mode");
   if (mode === "production" && allowLocalHttp) throw new Error("Local HTTP is only permitted in smoke mode");
@@ -129,6 +145,10 @@ export async function auditEndpoint(url, {
   }
   if (page.status !== 200) throw new Error("Landing page is not HTTP 200: " + page.status);
   const cache = reviewCacheHeaders(page.headers);
+  const hsts = reviewHsts(page.headers);
+  if (mode === "production" && requireHsts && !hsts.strong) {
+    throw new Error("Public HTTPS front door lacks strong HSTS policy");
+  }
   await page.body?.cancel().catch(() => {});
   if (mode === "production" && !cache.safe) throw new Error("Unsafe or unverified HTML cache policy");
   const pollingResponse = await request("/socket.io/?EIO=4&transport=polling");
@@ -141,5 +161,5 @@ export async function auditEndpoint(url, {
     throw new Error("Unsafe or unverified Engine.IO polling cache policy");
   }
   const websocket = await auditWebSocket(origin, { WebSocketImpl });
-  return { pass: true, origin, mode, cache, pollingCache, engineIO: "pass", websocket, httpStatus: page.status };
+  return { pass: true, origin, mode, cache, hsts, pollingCache, engineIO: "pass", websocket, httpStatus: page.status };
 }
