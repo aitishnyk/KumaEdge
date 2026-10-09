@@ -16,3 +16,5 @@ jobs:
           node-version: '22'
       - name: Test
         run: npm test
+      - name: SQLite snapshot and restore tests
+        run: python3 -m unittest discover -s test/python -v
