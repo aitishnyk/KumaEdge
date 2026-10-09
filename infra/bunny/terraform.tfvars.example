@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars, never commit it.
+# Do NOT place your account API key here. Use BUNNYNET_API_KEY in environment.
+app_name        = "kumaedge"
+region          = "DE"
+volume_gb       = 5
+ghcr_username   = "YOUR_GITHUB_ACCOUNT"
+image_namespace = "aitishnyk"
+image_name      = "kumaedge"
+# Use SHA from a successful main-branch image-publishing job.
+image_tag       = "213b2121fc88ee2a49309a82b5f9d046ca167234"
+# Set TF_VAR_ghcr_read_token in your shell (rather than putting it in tfvars).
