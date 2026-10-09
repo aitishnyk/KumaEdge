@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform/
+.terraform.tfstate.lock.info
+crash.log
+crash.*.log
+*.tfplan
+*.plan
+.DS_Store

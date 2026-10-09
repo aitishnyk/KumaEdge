@@ -1,0 +1,47 @@
+name: Bunny Terraform - static validation
+
+on:
+  pull_request:
+    paths:
+      - 'infra/bunny/**'
+      - '.github/workflows/terraform-validate.yml'
+      - '.gitignore'
+  push:
+    branches: [main]
+    paths:
+      - 'infra/bunny/**'
+      - '.github/workflows/terraform-validate.yml'
+      - '.gitignore'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: infra/bunny
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.13.3'
+      - name: Terraform format check
+        run: terraform fmt -check -recursive
+      - name: Provider initialization (no backend)
+        run: terraform init -backend=false -input=false
+      - name: Validate provider schema without credentials
+        run: terraform validate -no-color
+      - name: Prove no state files have been committed
+        working-directory: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -E '(^|/)(terraform\.tfstate|[^/]+\.tfstate(\..*)?|[^/]+\.tfplan|terraform\.tfvars|\.terraform/)' ; then
+            echo "Refusing tracked Terraform state, plans, or unencrypted variable files"
+            exit 1
+          fi
+          echo "No secret-bearing Terraform state, plans, or variable files tracked"
