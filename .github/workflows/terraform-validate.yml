@@ -30,7 +30,7 @@ jobs:
         with:
           terraform_version: '1.13.3'
       - name: Terraform format check
-        run: terraform fmt -check -recursive
+        run: terraform fmt -diff -check -recursive
       - name: Provider initialization (no backend)
         run: terraform init -backend=false -input=false
       - name: Validate provider schema without credentials

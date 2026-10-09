@@ -6,7 +6,8 @@ edge
 src
 test
 docs
-scripts
+scripts/*
+!scripts/bunny-db-backup-worker.py
 *.md
 .env
 .env.*
