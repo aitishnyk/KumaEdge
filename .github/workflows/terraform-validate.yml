@@ -40,7 +40,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git ls-files | grep -E '(^|/)(terraform\.tfstate|[^/]+\.tfstate(\..*)?|[^/]+\.tfplan|terraform\.tfvars|\.terraform/)' ; then
+          tracked="$(git ls-files | grep -E '(^|/)(terraform\.tfstate|[^/]+\.tfstate(\..*)?|[^/]+\.tfplan|terraform\.tfvars|\.terraform/)' | grep -v '\.example$' || true)"
+          if [[ -n "$tracked" ]]; then
+            echo "$tracked"
             echo "Refusing tracked Terraform state, plans, or unencrypted variable files"
             exit 1
           fi
