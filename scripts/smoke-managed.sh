@@ -20,6 +20,7 @@ start() {
     sleep 2
   done
   if [[ "$ready" != 1 ]]; then docker logs "$name"; echo 'HTTP smoke failed'; exit 1; fi
+  node scripts/check-production.mjs --url "http://127.0.0.1:$port" --mode smoke --allow-local-http
 }
 start
 docker exec "$name" sh -c 'test -d /app/data && touch /app/data/kumaedge-persistence-check'
