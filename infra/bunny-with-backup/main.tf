@@ -72,12 +72,16 @@ resource "bunnynet_compute_container_app" "kumaedge" {
       path = "/data"
     }
     env {
-      name  = "KUMAEDGE_BACKUP_VOLUME"
-      value = "/data"
+      name  = "KUMAEDGE_AGE_RECIPIENT"
+      value = var.backup_age_recipient
     }
     env {
-      name  = "KUMAEDGE_STORAGE_ZONE"
-      value = var.backup_storage_zone
+      name  = "KUMAEDGE_BACKUP_INTERVAL_HOURS"
+      value = tostring(var.backup_interval_hours)
+    }
+    env {
+      name  = "KUMAEDGE_BACKUP_VOLUME"
+      value = "/data"
     }
     env {
       name  = "KUMAEDGE_STORAGE_ACCESS_KEY"
@@ -88,12 +92,8 @@ resource "bunnynet_compute_container_app" "kumaedge" {
       value = var.backup_storage_region
     }
     env {
-      name  = "KUMAEDGE_AGE_RECIPIENT"
-      value = var.backup_age_recipient
-    }
-    env {
-      name  = "KUMAEDGE_BACKUP_INTERVAL_HOURS"
-      value = tostring(var.backup_interval_hours)
+      name  = "KUMAEDGE_STORAGE_ZONE"
+      value = var.backup_storage_zone
     }
   }
 

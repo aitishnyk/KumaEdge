@@ -191,6 +191,7 @@ def main(argv):
             try:
                 report = run_once(cfg)
                 print("Backup verified:", report["remote_path"], "bytes:", report["encrypted_bytes"],
+                      "sha256:", report["ciphertext_sha256"],
                       flush=True)
                 if once:
                     return 0
