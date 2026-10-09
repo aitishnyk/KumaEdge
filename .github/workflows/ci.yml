@@ -18,3 +18,28 @@ jobs:
         run: npm test
       - name: SQLite snapshot and restore tests
         run: python3 -m unittest discover -s test/python -v
+      - name: Install age for real encrypted backup acceptance
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y age
+      - name: Verify real age encryption, decryption, and restored bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$(mktemp -d)"
+          trap 'rm -rf -- "$root"' EXIT
+          mkdir -p "$root/volume/assets"
+          printf 'sqlite-test' > "$root/volume/kuma.db"
+          printf 'image-test' > "$root/volume/assets/pic.bin"
+          age-keygen -o "$root/identity.txt" >/dev/null
+          recipient="$(age-keygen -y "$root/identity.txt")"
+          export KUMAEDGE_APP_STOPPED=yes
+          python3 scripts/volume-backup.py backup "$root/volume" "$root/encrypted.age" "$recipient"
+          python3 scripts/volume-backup.py verify "$root/encrypted.age" "$root/identity.txt"
+          python3 scripts/volume-backup.py restore "$root/encrypted.age" "$root/identity.txt" "$root/restored"
+          cmp "$root/volume/kuma.db" "$root/restored/kuma.db"
+          cmp "$root/volume/assets/pic.bin" "$root/restored/assets/pic.bin"
+          if python3 scripts/volume-backup.py backup "$root/volume" "$root/encrypted.age" "$recipient"; then
+            echo "ERROR: overwrote existing backup" >&2; exit 1
+          fi
+          echo "Encrypted backup + full-volume restore acceptance PASS"
