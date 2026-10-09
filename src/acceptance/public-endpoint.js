@@ -65,6 +65,6 @@ export async function auditEndpoint(url,{allowLocalHttp=false,mode="production",
   if(mode==="production"&&!cache.safe)throw new Error("Unsafe or unverified cache headers; do not expose admin login");
   const socket=await request("/socket.io/?EIO=4&transport=polling");
   const bytes=(await socket.text()).slice(0,4096);
-  if(!isEngineIOHandshake(socket.status,bytes)) throw new Error("Engine.IO polling handshake failed");
+  if(!isEngineIOHandshake(socket.status,bytes)) throw new Error("Engine.IO polling handshake failed: HTTP "+socket.status+", content-type="+(socket.headers.get("content-type")||"none")+", prefix="+JSON.stringify(bytes.slice(0,80)));
   return {pass:true,origin,mode,cache,engineIO:"pass",httpStatus:page.status};
 }
