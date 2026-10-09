@@ -34,3 +34,10 @@
 - [ ] All required live gates green in a real Bunny account
 - [ ] Installation and rollback instructions verified externally
 - [ ] Security review, operational health and recovery exercise
+
+## v0.7 — Optional SQLite offsite backup
+- [x] Opt-in pod sidecar, SQLite online consistent copy including committed WAL
+- [x] age encryption with remote Bunny Storage PUT and authenticated GET SHA-256 readback
+- [x] Exact tagged, tested backup-worker GHCR image and Terraform settings
+- [ ] Live Bunny Storage write/read test and real isolated restore drill
+- [ ] Full-volume automated online backup, retention, alerting and recovery runbooks

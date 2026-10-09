@@ -1,0 +1,8 @@
+# syntax=docker/dockerfile:1
+FROM python:3.12-slim-bookworm
+RUN apt-get update \
+ && apt-get install --no-install-recommends -y age ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+COPY scripts/bunny-db-backup-worker.py /opt/kumaedge/backup-worker.py
+WORKDIR /opt/kumaedge
+ENTRYPOINT ["python3", "/opt/kumaedge/backup-worker.py"]
