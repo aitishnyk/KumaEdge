@@ -1,1 +1,5 @@
-{"source":"louislam/uptime-kuma","reviewed_sha":null,"note":"Reviewed SHA is intentionally null until the first upstream review PR is merged."}
+{
+  "source": "louislam/uptime-kuma",
+  "reviewed_sha": "91e193729ed78ed3aa13c03f76344a08e645e616",
+  "note": "Reviewed SHA is intentionally null until the first upstream review PR is merged."
+}
