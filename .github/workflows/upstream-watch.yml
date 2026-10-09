@@ -37,7 +37,7 @@ jobs:
             echo "Review branch already exists: $BRANCH"
           else
             git switch -c "$BRANCH"
-            UPSTREAM_SHA="$HEAD_SHA" node -e 'const fs=require("fs");const p=".github/upstream-state.json";const j=JSON.parse(fs.readFileSync(p));j.reviewed_sha=process.env.UPSTREAM_SHA;fs.writeFileSync(p,JSON.stringify(j,null,2)+"\\n")'
+            UPSTREAM_SHA="$HEAD_SHA" node -e 'const fs=require("fs");const p=".github/upstream-state.json";const j=JSON.parse(fs.readFileSync(p));j.reviewed_sha=process.env.UPSTREAM_SHA;fs.writeFileSync(p,JSON.stringify(j,null,2)+"\n")'
             git add .github/upstream-state.json
             git commit -m "chore: review upstream Uptime Kuma ${HEAD_SHA:0:12}"
             git push origin "$BRANCH"
