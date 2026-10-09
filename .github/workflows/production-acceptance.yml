@@ -19,6 +19,7 @@ jobs:
       - name: Read-only HTTPS, polling, and WebSocket audit
         env:
           KUMAEDGE_PUBLIC_URL: ${{ vars.KUMAEDGE_PUBLIC_URL }}
+          KUMAEDGE_REQUIRE_HSTS: ${{ vars.KUMAEDGE_REQUIRE_HSTS }}
         shell: bash
         run: |
           set -euo pipefail
@@ -26,7 +27,11 @@ jobs:
             echo "Set the KUMAEDGE_PUBLIC_URL GitHub Actions variable first." >&2
             exit 2
           fi
-          node scripts/check-production.mjs --url "$KUMAEDGE_PUBLIC_URL"
+          if [[ "${KUMAEDGE_REQUIRE_HSTS:-}" == "true" ]]; then
+            node scripts/check-production.mjs --url "$KUMAEDGE_PUBLIC_URL" --require-hsts
+          else
+            node scripts/check-production.mjs --url "$KUMAEDGE_PUBLIC_URL"
+          fi
           {
             echo "## Read-only public transport audit passed"
             echo "- HTTPS, HTML and Engine.IO polling cache policy, and real WebSocket handshake passed."
