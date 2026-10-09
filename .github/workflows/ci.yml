@@ -24,6 +24,8 @@ jobs:
           sudo apt-get install -y age
       - name: Verify live-WAL to age to restored SQLite database
         run: python3 -m unittest discover -s test/python -p test_bunny_db_backup_worker.py -v
+      - name: Run authenticated SQLite recovery tests with real age CLI
+        run: python3 -m unittest discover -s test/python -p test_restore_bunny_sqlite.py -v
       - name: Verify real age encryption, decryption, and restored bytes
         shell: bash
         run: |
