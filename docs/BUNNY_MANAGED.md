@@ -1,6 +1,6 @@
 # KumaEdge Bunny Managed Installation
 
-KumaEdge Bunny Managed runs the **full original Uptime Kuma v2** monitoring engine, notification providers, incident history and browser interface on a **paid** Bunny Magic Containers instance. No self-managed VPS is needed, but a paid running container and durable volume are required.
+KumaEdge Bunny Managed defaults to SQLite via the supported `UPTIME_KUMA_DB_TYPE=sqlite` environment variable, bypassing the initial database-type picker on a fresh volume. **Do not reuse this image for an existing MariaDB installation without adjusting the configuration and migration plan.**\n\nKumaEdge Bunny Managed runs the **full original Uptime Kuma v2** monitoring engine, notification providers, incident history and browser interface on a **paid** Bunny Magic Containers instance. No self-managed VPS is needed, but a paid running container and durable volume are required.
 
 ## Recommended provisioning
 
