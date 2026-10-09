@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Deliberately local/interactive: Terraform state can contain GHCR credentials.
 # Never run this installer in public CI or send plan/state files as artifacts.
-if [[ -n "\${CI:-}" || ! -t 0 ]]; then
+if [[ -n "${CI:-}" || ! -t 0 ]]; then
   echo "KumaEdge setup requires a trusted interactive terminal, not public CI." >&2
   exit 2
 fi
@@ -11,7 +11,7 @@ if ! command -v terraform >/dev/null 2>&1; then
   echo "Terraform 1.5+ is required. See https://developer.hashicorp.com/terraform/install" >&2
   exit 2
 fi
-root="$(cd "$(dirname "\${BASH_SOURCE[0]}")/../infra/bunny" && pwd)"
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../infra/bunny" && pwd)"
 cd "$root"
 umask 077
 
@@ -20,15 +20,15 @@ echo "This deploys PAID single-region compute and 5 GB persistent storage."
 echo "Keep terraform.tfstate and any credentials PRIVATE and backed up."
 echo "Do not run if you already deployed this app without importing its state."
 
-if [[ -z "\${BUNNYNET_API_KEY:-}" ]]; then
+if [[ -z "${BUNNYNET_API_KEY:-}" ]]; then
   read -r -s -p "Bunny account API key (input hidden): " BUNNYNET_API_KEY
   echo
 fi
-if [[ -z "\${TF_VAR_ghcr_read_token:-}" ]]; then
+if [[ -z "${TF_VAR_ghcr_read_token:-}" ]]; then
   read -r -s -p "GitHub read:packages token for pulling GHCR (input hidden): " TF_VAR_ghcr_read_token
   echo
 fi
-if [[ -z "\${TF_VAR_ghcr_username:-}" ]]; then
+if [[ -z "${TF_VAR_ghcr_username:-}" ]]; then
   read -r -p "GitHub registry username: " TF_VAR_ghcr_username
 fi
 
