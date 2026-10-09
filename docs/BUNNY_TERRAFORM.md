@@ -10,8 +10,8 @@ This directory contains reproducible infrastructure-as-code for the **managed** 
 
 ## Provisioning steps
 
-1. Confirm the published image exists at `ghcr.io/aitishnyk/kumaedge:213b2121fc88ee2a49309a82b5f9d046ca167234` (or set another main-branch SHA that passed image publishing). If your image is private, the GHCR PAT must be able to pull it.
-2. Copy `infra/bunny/terraform.tfvars.example` to `infra/bunny/terraform.tfvars`. Configure `ghcr_username` and desired region.
+1. Confirm the published image exists at `ghcr.io/aitishnyk/kumaedge:<PUBLISHED_MAIN_SHA>` (or set another main-branch SHA that passed image publishing). If your image is private, the GHCR PAT must be able to pull it.
+2. Copy `infra/bunny/terraform.tfvars.example` to `infra/bunny/terraform.tfvars`. Configure `ghcr_username`, desired region and **the exact `image_tag` confirmed as published by GitHub Actions**. The bundled example deliberately does not include a working tag. If using `scripts/install-bunny.sh`, it asks for the SHA interactively (or uses `TF_VAR_image_tag`).
 3. Set `BUNNYNET_API_KEY` and `TF_VAR_ghcr_read_token` as private environment variables in your terminal or secure secret manager. Avoid command histories and logs. **Do not** put them in a public GitHub issue, PR, code, or chat.
 4. From `infra/bunny/`, run:
 
@@ -43,3 +43,5 @@ Official references:
 - https://registry.terraform.io/providers/BunnyWay/bunnynet/latest/docs/resources/compute_container_app
 - https://registry.terraform.io/providers/BunnyWay/bunnynet/latest/docs/resources/compute_container_imageregistry
 - https://docs.bunny.net/docs/magic-containers-how-to-deploy-your-app
+
+**Note:** A Git commit in `main` is not automatically a published container image. Only use SHA tags whose **Bunny Managed - build, test and publish** workflow on main finished successfully. The installer validates SHA syntax but cannot certify private registry visibility until Bunny pulls it.
