@@ -45,3 +45,7 @@ Official references:
 - https://docs.bunny.net/docs/magic-containers-how-to-deploy-your-app
 
 **Note:** A Git commit in `main` is not automatically a published container image. Only use SHA tags whose **Bunny Managed - build, test and publish** workflow on main finished successfully. The installer validates SHA syntax but cannot certify private registry visibility until Bunny pulls it.
+
+## Release eligibility at deployment time
+
+The production GitHub Action checks that the selected SHA belongs to `main` **and** has a completed, successful official image-publishing GitHub Actions push run. Both GHCR packages must be available before the Bunny image-update action begins. A SHA with merely passing tests or a locally built Docker image is not accepted. The installer remains interactive and requires the operator to select a previously published SHA; its syntax check is not an online provenance verification. Never place Terraform state or Bunny secrets in public CI.
