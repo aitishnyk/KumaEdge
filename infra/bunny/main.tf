@@ -1,10 +1,5 @@
-# The Bunny Terraform provider is official and supports managed container
-# applications, persistent volumes, CDN endpoints and GitHub registries.
-#
-# This plan creates PAID Bunny resources on terraform apply.
-# Apply only from a trusted environment with PERSISTENT, protected state.
-# Never use -auto-approve in a public fork.
-
+# Bunny Managed / Uptime Kuma: a single SQLite writer with durable volume.
+# Paid infrastructure. Never apply without an explicit reviewed plan.
 resource "bunnynet_compute_container_imageregistry" "ghcr" {
   registry = "GitHub"
   username = var.ghcr_username
@@ -15,7 +10,6 @@ resource "bunnynet_compute_container_app" "kumaedge" {
   name    = var.app_name
   version = 2
 
-  # SQLite is NOT safe with multiple concurrent writers.
   autoscaling_min     = 1
   autoscaling_max     = 1
   regions_allowed     = [var.region]
@@ -30,16 +24,30 @@ resource "bunnynet_compute_container_app" "kumaedge" {
     image_tag         = var.image_tag
     image_pull_policy = "IfNotPresent"
 
+    # Anycast avoids an automatically configured shared CDN content cache.
+    # It does not itself prove HTTPS/TLS is set up. Never use HTTP for login.
     endpoint {
       name = "web"
-      type = "CDN"
-
-      cdn {
-        origin_ssl = false
-      }
+      type = "Anycast"
 
       port {
         container = 3001
+        exposed   = 3001
+        protocols = ["TCP"]
+      }
+    }
+
+    # A health probe must not depend on having an admin login session.
+    readiness_probe {
+      type              = "http"
+      port              = 3001
+      initial_delay     = 20
+      period            = 15
+      timeout           = 5
+      failure_threshold = 3
+      http {
+        path            = "/"
+        expected_status = 200
       }
     }
 
@@ -59,7 +67,7 @@ resource "bunnynet_compute_container_app" "kumaedge" {
 
     precondition {
       condition     = var.volume_gb >= 2
-      error_message = "A persistent volume is required for the KumaEdge SQLite database."
+      error_message = "A persistent volume is mandatory for Uptime Kuma."
     }
   }
 }
