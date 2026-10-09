@@ -47,15 +47,40 @@ export async function checkMainRelease(sha, {
   });
   if (!response.ok) throw Error("GitHub Actions release lookup failed: HTTP " + response.status);
   const payload = await response.json();
-  if (!hasSuccessfulMainRelease(payload, sha)) {
-    throw Error("No completed, successful main-branch push release for this SHA");
+  // A green build can have skipped publication when both SHA tags already exist.
+  // Require the digest artifact created ONLY after this run really pushed both.
+  const eligible = Array.isArray(payload.workflow_runs) ? payload.workflow_runs.filter(run =>
+    hasSuccessfulMainRelease({ workflow_runs: [run] }, sha) &&
+    Number.isSafeInteger(run.id) && run.id > 0
+  ) : [];
+  for (const run of eligible) {
+    const artifactUrl = new URL("repos/" + repo + "/actions/runs/" + run.id + "/artifacts?per_page=100",
+      root.href.endsWith("/") ? root : root.href + "/");
+    const artifactsResponse = await request(artifactUrl, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: "Bearer " + token,
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "kumaedge-release-preflight"
+      },
+      signal: AbortSignal.timeout(15000)
+    });
+    if (!artifactsResponse.ok) throw Error("Publisher artifacts lookup failed: HTTP " + artifactsResponse.status);
+    const artifacts = await artifactsResponse.json();
+    const found = Array.isArray(artifacts.artifacts) && artifacts.artifacts.some(artifact =>
+      artifact.name === "kumaedge-oci-digests-" + sha &&
+      artifact.expired === false &&
+      Number.isSafeInteger(artifact.size_in_bytes) && artifact.size_in_bytes > 0
+    );
+    if (found) return { sha, verified: true, runId: run.id };
   }
-  return { sha, verified: true };
+  throw Error("No successful main push publisher with unexpired OCI digest evidence for this SHA");
 }
 
 if (process.argv[1] && import.meta.url === new URL("file://" + process.argv[1]).href) {
-  checkMainRelease(process.argv[2]).then(() => {
-    process.stdout.write("PASS: official main push release completed for requested SHA\n");
+  checkMainRelease(process.argv[2]).then(result => {
+    // Written into $GITHUB_OUTPUT by the protected deploy workflow.
+    process.stdout.write("run_id=" + result.runId + "\n");
   }).catch(error => {
     process.stderr.write("Release provenance FAILED: " + error.message + "\n");
     process.exitCode = 1;

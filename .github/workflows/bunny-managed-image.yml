@@ -14,6 +14,7 @@ on:
       - '.github/upstream-state.json'
       - 'scripts/guard-ghcr-publish.mjs'
       - 'scripts/verify-release-provenance.mjs'
+      - 'scripts/oci-release-evidence.mjs'
   push:
     branches: [main]
     paths:
@@ -29,6 +30,7 @@ on:
       - '.github/upstream-state.json'
       - 'scripts/guard-ghcr-publish.mjs'
       - 'scripts/verify-release-provenance.mjs'
+      - 'scripts/oci-release-evidence.mjs'
   schedule:
     - cron: '37 5 * * *'
   workflow_dispatch:
@@ -86,3 +88,16 @@ jobs:
           BACKUP_IMAGE="${IMAGE}-backup"
           docker tag kumaedge-backup:smoke "$BACKUP_IMAGE:$GITHUB_SHA"
           docker push "$BACKUP_IMAGE:$GITHUB_SHA"
+      - name: Record published OCI manifest digests
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.image_guard.outputs.publish == 'true'
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: node scripts/oci-release-evidence.mjs record "$RUNNER_TEMP/evidence.json"
+      - name: Upload publisher digest evidence
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.image_guard.outputs.publish == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: kumaedge-oci-digests-${{ github.sha }}
+          path: ${{ runner.temp }}/evidence.json
+          if-no-files-found: error
+          retention-days: 90
