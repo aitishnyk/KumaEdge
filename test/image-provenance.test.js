@@ -12,8 +12,11 @@ test("pinned backup image digest",()=>{
   assert.match(worker,/^FROM python:3\.12-slim-bookworm@sha256:[a-f0-9]{64}$/m);
 });
 test("GHCR SHA tags cannot be overwritten by schedules or manual builds",()=>{
-  assert.match(workflow,/Refuse overwriting any published SHA-tagged images/);
-  assert.match(workflow,/Partial release detected/);
+  assert.match(workflow,/Fail-closed GHCR manifest state/);
+  assert.match(workflow,/node scripts\/guard-ghcr-publish\.mjs/);
+  const guard=readFileSync("scripts/guard-ghcr-publish.mjs","utf8");
+  assert.match(guard,/Only one of two release images exists/);
+  assert.match(guard,/Cannot determine manifest presence safely/);
   assert.match(workflow,/steps.image_guard.outputs.publish == 'true'/);
   assert.match(workflow,/workflow_dispatch:/);
   assert.match(workflow,/schedule:/);
