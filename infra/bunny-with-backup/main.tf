@@ -57,44 +57,44 @@ resource "bunnynet_compute_container_app" "kumaedge" {
     }
   }
 
-  # Optional sidecar shares the pod and reads the SQLite volume. No public port.
-  # Opt-in only. Secrets in env blocks can be present in Terraform state.
+  # Backup-variant sidecar shares the pod and reads the SQLite volume. No public port.
+  # Use this Terraform root only when encrypted offsite backups are required. Secrets in env blocks can be present in Terraform state.
   container {
-      name              = "sqlite-offsite-backup"
-      image_registry    = bunnynet_compute_container_imageregistry.ghcr.id
-      image_namespace   = var.image_namespace
-      image_name        = "kumaedge-backup"
-      image_tag         = var.image_tag
-      image_pull_policy = "IfNotPresent"
+    name              = "sqlite-offsite-backup"
+    image_registry    = bunnynet_compute_container_imageregistry.ghcr.id
+    image_namespace   = var.image_namespace
+    image_name        = "kumaedge-backup"
+    image_tag         = var.image_tag
+    image_pull_policy = "IfNotPresent"
 
-      volumemount {
-        name = "data"
-        path = "/data"
-      }
-      env {
-        name  = "KUMAEDGE_BACKUP_VOLUME"
-        value = "/data"
-      }
-      env {
-        name  = "KUMAEDGE_STORAGE_ZONE"
-        value = var.backup_storage_zone
-      }
-      env {
-        name  = "KUMAEDGE_STORAGE_ACCESS_KEY"
-        value = var.backup_storage_access_key
-      }
-      env {
-        name  = "KUMAEDGE_STORAGE_REGION"
-        value = var.backup_storage_region
-      }
-      env {
-        name  = "KUMAEDGE_AGE_RECIPIENT"
-        value = var.backup_age_recipient
-      }
-      env {
-        name  = "KUMAEDGE_BACKUP_INTERVAL_HOURS"
-        value = tostring(var.backup_interval_hours)
-      }
+    volumemount {
+      name = "data"
+      path = "/data"
+    }
+    env {
+      name  = "KUMAEDGE_BACKUP_VOLUME"
+      value = "/data"
+    }
+    env {
+      name  = "KUMAEDGE_STORAGE_ZONE"
+      value = var.backup_storage_zone
+    }
+    env {
+      name  = "KUMAEDGE_STORAGE_ACCESS_KEY"
+      value = var.backup_storage_access_key
+    }
+    env {
+      name  = "KUMAEDGE_STORAGE_REGION"
+      value = var.backup_storage_region
+    }
+    env {
+      name  = "KUMAEDGE_AGE_RECIPIENT"
+      value = var.backup_age_recipient
+    }
+    env {
+      name  = "KUMAEDGE_BACKUP_INTERVAL_HOURS"
+      value = tostring(var.backup_interval_hours)
+    }
   }
 
   volume {
