@@ -41,3 +41,15 @@
 - [x] Exact tagged, tested backup-worker GHCR image and Terraform settings
 - [ ] Live Bunny Storage write/read test and real isolated restore drill
 - [ ] Full-volume automated online backup, retention, alerting and recovery runbooks
+
+## v0.10 — Production front door and backup freshness
+- [x] Explicit HTTPS/WebSocket/cache/HSTS deployment audit
+- [x] Private Bunny Storage backup freshness observer, disabled until opt-in
+- [ ] Real HTTPS public deployment and actual rollback/restore evidence
+
+## v0.11 — Independent production operations
+- [x] Opt-in, external scheduled HTTPS + Engine.IO polling/WebSocket observer
+- [x] Fail-closed public DNS hostname requirement in production audit
+- [x] Operations and disaster-recovery acceptance runbook
+- [ ] Live public URL acceptance from independent runner
+- [ ] Real Bunny monitoring/alert delivery, persistent restart and isolated restore tests
