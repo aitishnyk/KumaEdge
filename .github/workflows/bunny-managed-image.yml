@@ -12,6 +12,8 @@ on:
       - 'scripts/check-production.mjs'
       - 'src/acceptance/**'
       - '.github/upstream-state.json'
+      - 'scripts/guard-ghcr-publish.mjs'
+      - 'scripts/verify-release-provenance.mjs'
   push:
     branches: [main]
     paths:
@@ -31,6 +33,10 @@ on:
 permissions:
   contents: read
   packages: write
+concurrency:
+  group: kumaedge-ghcr-release-${{ github.sha }}
+  cancel-in-progress: false
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -62,27 +68,10 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Refuse overwriting any published SHA-tagged images
+      - name: Fail-closed GHCR manifest state (unknown != missing)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         id: image_guard
-        env:
-          IMAGE: ${{ steps.registry.outputs.image }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          base_present=false
-          worker_present=false
-          if docker manifest inspect "$IMAGE:$GITHUB_SHA" >/dev/null 2>&1; then base_present=true; fi
-          if docker manifest inspect "$IMAGE-backup:$GITHUB_SHA" >/dev/null 2>&1; then worker_present=true; fi
-          if [[ "$base_present" == true && "$worker_present" == true ]]; then
-            echo "::notice::Both SHA-tagged images already exist; skip writes."
-            echo "publish=false" >> "$GITHUB_OUTPUT"
-          elif [[ "$base_present" == true || "$worker_present" == true ]]; then
-            echo "::error::Partial release detected. Never overwrite an existing SHA-tagged image."
-            exit 1
-          else
-            echo "publish=true" >> "$GITHUB_OUTPUT"
-          fi
+        run: node scripts/guard-ghcr-publish.mjs
       - name: Tag and publish the EXACT tested image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.image_guard.outputs.publish == 'true'
         env:

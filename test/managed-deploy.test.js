@@ -11,4 +11,9 @@ test("Production updater preflights both images before changing Bunny", () => {
   assert.match(workflow,/vars.BUNNY_MC_BACKUP_ENABLED == 'true'/);
   assert.match(workflow,/container: sqlite-offsite-backup/);
   assert.doesNotMatch(workflow,/container-update-image@main/);
+  assert.match(workflow,/scripts\/verify-release-provenance\.mjs/);
+  assert.match(workflow,/actions: read/);
+  assert.match(workflow,/dispatch must use main/);
+  assert.ok(workflow.indexOf("Require a successful official main publishing run") < deployMain);
+  assert.ok(workflow.indexOf("Verify Bunny deployment prerequisites") < deployMain);
 });

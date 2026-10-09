@@ -59,3 +59,11 @@
 - [x] Restored into a fresh Docker volume and booted in another Uptime Kuma container
 - [x] Full-volume integrity check blocks GHCR publishing if recovery fails
 - [ ] Real Bunny production export, offsite full-volume storage and isolated restore acceptance
+
+## v0.14 — Release provenance and GHCR fail-closed deployment
+- [x] Check exact official successful main-branch image publishing run before Bunny update
+- [x] Reject missing Bunny connection, ambiguous registry response and partial two-image release
+- [x] Limit GHCR tag publishing concurrency to one writer per Git SHA
+- [x] Test GHCR 403/timeout vs genuine missing-manifest behavior
+- [ ] Real GitHub production environment credentials and live Bunny deployment
+- [ ] Cryptographic OCI release attestation / signed digest pinning in Bunny runtime

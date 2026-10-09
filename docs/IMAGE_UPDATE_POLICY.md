@@ -11,3 +11,13 @@ Nightly and manually triggered managed Docker builds continue to run tests, but 
 **Known limit:** the backup-worker Dockerfile still resolves Debian `age` packages at build time. Thus pinning its base digest does not guarantee byte-identical whole-image rebuilds across time. No such claim is made. GHCR-image production rollback should reference a known tested image and compatible SQLite schema.
 
 Technical reference: [Docker Buildx registry inspection](https://docs.docker.com/reference/cli/docker/buildx/imagetools/inspect/).
+
+## v0.14 — Strict release eligibility and GHCR failure handling
+
+The manual production workflow now checks three independent gates **before** calling Bunny: the SHA belongs to `main`, a completed successful **push** execution of `.github/workflows/bunny-managed-image.yml` published that exact SHA, and the GHCR images are retrievable. It refuses missing Bunny credentials, an unsupported backup mode and dispatches from branches other than `main`.
+
+The publisher distinguishes an **explicit missing registry manifest** from a registry authentication, timeout, rate-limit or network error. Ambiguous errors **fail closed** instead of treating an inaccessible manifest as safe to overwrite. If exactly one of two image tags exists, publication stops; the operator must reconcile it. Publication is serialised by Git commit SHA to avoid duplicate writers.
+
+The script checks official GitHub Actions release history with the GitHub workflow token and requires `actions: read`. It does not contact Bunny or expose any registry/login credentials.
+
+**Threat-model boundary:** A successful workflow and a tag in GHCR do not cryptographically prove the registry bytes never changed. Repository/package administrators can still mutate tags outside this workflow. A future step could use signed SLSA provenance, OCI digests passed through the deployment API and GitHub artifact attestations, subject to Bunny deployment support. Until then, compare registry digests against recorded release evidence for high-risk rollbacks.
