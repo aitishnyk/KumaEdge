@@ -1,6 +1,6 @@
 # Bunny provisioning without clicking through the console
 
-This directory contains reproducible infrastructure-as-code for the **managed** KumaEdge runtime. It uses the official Bunny Terraform provider's `compute_container_app` and `compute_container_imageregistry` resources. It provisions a single-region single-replica app, a persistent 5 GB default volume at `/app/data`, and a CDN endpoint on port 3001.
+This directory contains reproducible infrastructure-as-code for the **managed** KumaEdge runtime. It uses the official Bunny Terraform provider's `compute_container_app` and `compute_container_imageregistry` resources. It provisions a single-region single-replica app, a persistent 5 GB default volume at `/app/data`, and a direct Anycast endpoint on port 3001. The default intentionally avoids a shared CDN cache in front of the admin application, but does not provision TLS.
 
 ## Scope
 
@@ -24,18 +24,19 @@ This directory contains reproducible infrastructure-as-code for the **managed** 
    terraform output app_id
    ```
 
-5. In the Bunny console inspect the generated CDN endpoint and its caching configuration. **Disable shared caching for Uptime Kuma's authenticated routes, API and all personalized content.** Verify HTTPS and Socket.IO/WebSocket functionality before exposing login to users. A CDN endpoint alone is not proof that this is secure.
-6. Configure the GitHub Actions repository variable `BUNNY_MC_APP_ID` with the printed `app_id`, and `BUNNYNET_API_KEY` in Actions secrets for future *manually approved* image updates. Enable a protected `production` environment.
-7. Open the HTTPS URL and configure Uptime Kuma. Add a monitor and alert channel. Verify an actual down/recovery incident, restart the Bunny app, ensure all data is still available, and confirm checks continue while your browser is closed.
-8. Maintain encrypted/offsite backups of `/app/data`, and preserve the Terraform state. Do not run `terraform destroy` on real customer data.
+5. **Critical:** the Terraform module now uses Anycast as the default public endpoint to avoid a shared CDN cache. Anycast by itself does not establish HTTPS/TLS. **Do not enter admin credentials over HTTP.** Configure a trusted HTTPS-terminating front door (for example a properly hardened Bunny CDN Pull Zone with *all* authenticated, API, HTML and dynamic routes bypassing shared cache), then confirm the actual public address serves HTTPS, private/no-store responses and working Engine.IO polling/WebSocket. Bunny endpoint details and TLS depend on the live account. Never assume a passing Terraform plan provides a secure public website.
+6. After configuring an HTTPS hostname, run: `node scripts/check-production.mjs --url https://your-kumaedge-host.example`. This fails closed on missing explicit private/no-store cache policy, HTTP redirects and Engine.IO failures. It does not authenticate or inspect private content.
+7. Configure the GitHub Actions repository variable `BUNNY_MC_APP_ID` with the printed `app_id`, and `BUNNYNET_API_KEY` in Actions secrets for future *manually approved* image updates. Enable a protected `production` environment.
+8. Open the HTTPS URL and configure Uptime Kuma. Add a monitor and alert channel. Verify an actual down/recovery incident, restart the Bunny app, ensure all data is still available, and confirm checks continue while your browser is closed.
+9. Maintain encrypted/offsite backups of `/app/data`, and preserve the Terraform state. Do not run `terraform destroy` on real customer data.
 
 ## Guarantees, limitations and rollback
 
 - One static region, exactly one replica and a persistent volume. No automatic horizontal scaling with SQLite.
 - The `prevent_destroy` lifecycle rule protects the app against accidental Terraform deletion/replacement. The registry resource can still be changed, so always review the plan.
-- This is a **new-install** module, not an import/migration tool for a pre-existing Magic Containers app. Do not apply it against an app you've already created manually without first properly importing it into your state.
+- **Existing Terraform installs:** changing an endpoint from CDN to Anycast may recreate the public endpoint and change the hostname. Review the plan and do not apply this change blindly.\n- This is a **new-install** module, not an import/migration tool for a pre-existing Magic Containers app. Do not apply it against an app you've already created manually without first properly importing it into your state.
 - Switching the `image_tag` requires a successful build and acceptance; the existing manual GitHub deploy workflow updates an already-created app, so avoid simultaneously managing image tags with Terraform unless you reconcile state.
-- CDN sessions, security, cache rules, persistence after restart, and alert delivery need live acceptance. GitHub CI cannot certify them without access to your account.
+- Anycast avoids automatic content caching; HTTPS still needs to be provided separately. Sessions, security, cache rules of any added proxy, persistence after restart, and alert delivery need live acceptance. GitHub CI cannot certify them without access to your account.
 - Public forks must supply their own Bunny account, registry credentials and image tags. Forking this repository does **not** grant access to the publisher's Bunny resources.
 
 Official references:

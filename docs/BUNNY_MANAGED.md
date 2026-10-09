@@ -29,7 +29,7 @@ The manual update workflow validates the image's exact 40-hex SHA, confirms its 
 
 ## Live checks required
 
-Verify the public endpoint with HTTPS; test browser login + Socket.IO transport; disable CDN shared caching for sessions, API, HTML and dynamic status; enable 2FA; test actual down/recovered alerts and SQLite state after a container restart; preserve private encrypted backups.
+The default Anycast endpoint does not itself guarantee TLS; provide an HTTPS front door before entering credentials. Run `node scripts/check-production.mjs --url https://your-public-host` for a fail-closed anonymous transport and cache audit. Verify the public endpoint with HTTPS; test browser login + Socket.IO transport; disable CDN shared caching for sessions, API, HTML and dynamic status; enable 2FA; test actual down/recovered alerts and SQLite state after a container restart; preserve private encrypted backups.
 
 The Terraform provider's successful schema validation and GitHub Docker smoke are **not** evidence that live Bunny account integration has run.
 

@@ -1,0 +1,26 @@
+name: Bunny production - public HTTPS and Engine.IO acceptance
+on:
+  workflow_dispatch:
+    inputs:
+      public_url:
+        description: 'Public HTTPS origin (NO credentials, query or fragment)'
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  public-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify public endpoint transport and cache safeguards
+        env:
+          KUMAEDGE_PUBLIC_URL: ${{ inputs.public_url }}
+        run: node scripts/check-production.mjs --url "$KUMAEDGE_PUBLIC_URL" --mode production
+      - name: Additional acceptance still required
+        run: |
+          echo 'Transport and caching only. Manually confirm admin 2FA, volume state after restart, incident notifications and backup restore.' >> "$GITHUB_STEP_SUMMARY"
