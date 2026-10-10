@@ -62,3 +62,13 @@ test("interactive installer checks OCI evidence before paid plan and uses epheme
   assert.match(installer,/CREATE KUMAEDGE/);
   assert.doesNotMatch(installer,/terraform apply[^\n]*-auto-approve/);
 });
+
+test("portable macOS age fallback is from official pinned SHA-256, not Homebrew", () => {
+  const runner = readFileSync("scripts/run-mac-acceptance.sh", "utf8");
+  assert.match(runner, /age-v1\.3\.2-darwin-\$age_arch\.tar\.gz/);
+  assert.match(runner, /1d1e4bc66e1427edad7739ae7616157de0e79db8b6d2a1497d7d9925fb06a539/);
+  assert.match(runner, /e2020b073c44f692685a24d6abc378817eb81ffaaf49fd0531ef8565f767f2f5/);
+  assert.match(runner, /shasum -a 256 -c -/);
+  assert.match(runner, /tar -xzf .*age\/age age\/age-keygen/);
+  assert.doesNotMatch(runner, /brew install age/);
+});
