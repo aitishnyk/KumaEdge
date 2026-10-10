@@ -59,3 +59,17 @@ For a **new deployment**, use only digests taken from the unexpired `kumaedge-oc
 Set the optional variables privately in your trusted terminal, then use the existing `bash scripts/install-bunny.sh` or `bash scripts/install-bunny.sh --with-backup` interactive installer and review its complete **paid** Terraform plan. The plan must show exactly the digest(s) from the publisher evidence. No examples embed a real hash or any credential.
 
 **Important limits:** This does not automatically fetch/verify the publisher artifact, retrofit existing Terraform state or upgrade the manual `container-update-image` action (which still operates by tag). Provider schema support is verified, but **Bunny runtime enforcement of the digest is untested** without a real paid test instance; verify the created template, running pod, restart and rollback before declaring digest-immutable production. Never silently apply an image_digest edit to an existing deployment.
+
+## v0.17 — Fail-closed publisher evidence preflight for digest-pinned installs
+
+When setting `TF_VAR_image_digest` (and `TF_VAR_backup_image_digest` for `--with-backup`), the interactive installer now **requires the full absolute path** of the downloaded `evidence.json` from the successful, official main-branch `kumaedge-oci-digests-<SHA>` GitHub Actions artifact:
+
+```sh
+export KUMAEDGE_RELEASE_EVIDENCE_FILE="$HOME/Downloads/kumaedge-release/evidence.json"
+# Also set TF_VAR_image_tag and the exact corresponding digest variable(s).
+bash scripts/install-bunny.sh --with-backup
+```
+
+The installer requires Docker CLI with Buildx and Node.js 20+ **only when digest pinning is selected**. It logs into GHCR using the supplied existing read-only packages token, placing temporary Docker credentials in a private throwaway configuration directory instead of the user's persistent Docker config. It verifies that the artifact matches the selected repository and SHA, confirms both actual GHCR manifest digests still equal the publisher evidence, and confirms selected Terraform digest pins equal the artifact. Any mismatch or inaccessible registry stops **before** Terraform initialization, the paid plan, and apply. Temporary registry login data is removed even on failure.
+
+The artifact **must** originate from the reviewed main publisher run; the script checks its content and the current registry state but cannot independently attest who uploaded a local JSON file. Keep its provenance chain intact. Without a digest pin, existing tag-only installs remain compatible and are **not** called digest-verified. No new account provisioning, Terraform apply or Bunny live validation occurs as part of this check.

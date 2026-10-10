@@ -83,3 +83,9 @@
 - [x] Keep interactive paid-plan consent and document artifact-based digest selection
 - [ ] Prove digest enforcement, restarts and rollback on a real Bunny app
 - [ ] Replace tag-only update path with a tested digest-native rollout before claiming end-to-end immutability
+
+## v0.17 — Verified OCI pinning at install time (source)
+- [x] Fail-closed read-only publisher artifact, both-registry-manifests and Terraform digest verification before paid installer plan/apply
+- [x] GHCR read-only token scoped to disposable Docker credential directory; no persistent local Docker login side effect
+- [x] Negative tests for retargeted images, bad artifact, unpaired backup pins and registry failures
+- [ ] Run authenticated end-to-end digest-pinned installation and rollback on a real Bunny account
