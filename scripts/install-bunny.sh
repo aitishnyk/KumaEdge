@@ -21,6 +21,7 @@ case "${1:-}" in
     ;;
   *) echo "Unknown option: $1" >&2; exit 2 ;;
 esac
+script_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 if [[ "$backup_mode" == "true" ]]; then
   root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../infra/bunny-with-backup" && pwd)"
 else
@@ -116,7 +117,7 @@ if [[ -n "${TF_VAR_image_digest:-}" || -n "${TF_VAR_backup_image_digest:-}" ]]; 
   DOCKER_CONFIG="$release_docker_config" \
   KUMAEDGE_GHCR_REPOSITORY="${TF_VAR_image_namespace:-aitishnyk}/${TF_VAR_image_name:-kumaedge}" \
   KUMAEDGE_BACKUP_MODE="$backup_mode" \
-  node "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/scripts/preflight-bunny-install.mjs" "$KUMAEDGE_RELEASE_EVIDENCE_FILE"
+  node "$script_root/scripts/preflight-bunny-install.mjs" "$KUMAEDGE_RELEASE_EVIDENCE_FILE"
   rm -rf -- "$release_docker_config"
   release_docker_config=""
 fi
