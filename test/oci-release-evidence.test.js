@@ -64,3 +64,17 @@ test("build uploads evidence after publishing; deploy verifies before mutation",
   const mutate=deploy.indexOf("Deploy prebuilt immutable tag to Bunny");
   assert.ok(attest>=0 && attest<fetch && fetch<compare && compare<mutate);
 });
+
+test("Docker Hub pull authentication precedes both pinned upstream builds", () => {
+  const workflow = readFileSync(".github/workflows/bunny-managed-image.yml", "utf8");
+  const auth = workflow.indexOf("Authenticate pinned upstream pulls to Docker Hub when configured");
+  const main = workflow.indexOf("Pull and build upstream runtime");
+  const backup = workflow.indexOf("Build optional encrypted backup sidecar");
+  assert.ok(auth >= 0 && auth < main && main < backup);
+  assert.match(workflow,/docker login docker.io --username "\$DOCKERHUB_USERNAME" --password-stdin/);
+  assert.match(workflow,/secrets.DOCKERHUB_USERNAME/);
+  assert.match(workflow,/secrets.DOCKERHUB_TOKEN/);
+  assert.match(workflow,/Configure both DOCKERHUB_USERNAME and DOCKERHUB_TOKEN/);
+  assert.match(workflow,/docker build --pull -t kumaedge:smoke/);
+  assert.match(workflow,/docker build --pull -f Dockerfile.backup/);
+});

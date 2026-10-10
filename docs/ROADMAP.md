@@ -74,3 +74,5 @@
 - [x] Fail closed on absent/expired artifact, missing backup tag, registry errors and tag retargeting
 - [ ] Replace tag-based Bunny update with digest-addressed image update if Bunny API supports it
 - [ ] Signed SLSA/OCI attestation and independent supply-chain verification
+- [x] Add optional authenticated Docker Hub base pulls with pairwise credential validation (mitigates shared-runner anonymous HTTP 429)
+- [ ] Configure private Docker Hub read-only Actions credentials for rate-limit-resistant build acceptance

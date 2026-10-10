@@ -47,6 +47,22 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+      - name: Authenticate pinned upstream pulls to Docker Hub when configured
+        shell: bash
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$DOCKERHUB_USERNAME" && -n "$DOCKERHUB_TOKEN" ]]; then
+            printf '%s' "$DOCKERHUB_TOKEN" | docker login docker.io --username "$DOCKERHUB_USERNAME" --password-stdin
+            echo "Authenticated Docker Hub upstream pulls"
+          elif [[ -z "$DOCKERHUB_USERNAME" && -z "$DOCKERHUB_TOKEN" ]]; then
+            echo "::notice::Docker Hub pull is anonymous; shared CI runners may receive HTTP 429. Configure DOCKERHUB_USERNAME and DOCKERHUB_TOKEN as Actions secrets."
+          else
+            echo "::error::Configure both DOCKERHUB_USERNAME and DOCKERHUB_TOKEN, or neither"
+            exit 2
+          fi
       - name: Pull and build upstream runtime
         run: docker build --pull -t kumaedge:smoke .
       - name: Build optional encrypted backup sidecar
