@@ -67,3 +67,12 @@
 - [x] Test GHCR 403/timeout vs genuine missing-manifest behavior
 - [ ] Real GitHub production environment credentials and live Bunny deployment
 - [ ] Cryptographic OCI release attestation / signed digest pinning in Bunny runtime
+
+## v0.15 — Published OCI digest admission evidence
+- [x] Create a per-run GitHub artifact with both registry OCI manifest digests only after actually publishing the two tested GHCR images
+- [x] Require evidence from a successful official main-branch push run and compare BOTH live registry digests before Bunny mutation
+- [x] Fail closed on absent/expired artifact, missing backup tag, registry errors and tag retargeting
+- [ ] Replace tag-based Bunny update with digest-addressed image update if Bunny API supports it
+- [ ] Signed SLSA/OCI attestation and independent supply-chain verification
+- [x] Add optional authenticated Docker Hub base pulls with pairwise credential validation (mitigates shared-runner anonymous HTTP 429)
+- [ ] Configure private Docker Hub read-only Actions credentials for rate-limit-resistant build acceptance

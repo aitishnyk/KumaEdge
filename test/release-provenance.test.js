@@ -8,7 +8,7 @@ import { classifyManifest, planImagePublish, guardRelease } from "../scripts/gua
 
 const SHA = "6f6dbf98928058afcf229f3f53f8aca57d5900cd";
 const eligibleRun = {
-  head_sha: SHA, head_branch: "main", event: "push",
+  id: 321, head_sha: SHA, head_branch: "main", event: "push",
   status: "completed", conclusion: "success"
 };
 
@@ -34,17 +34,23 @@ test("GitHub provenance fetch uses the correct workflow, SHA, branch and token",
     request:async (url, options) => {
       called++;
       assert.equal(url.hostname,"api.github.com");
-      assert.equal(url.pathname,
-        "/repos/aitishnyk/KumaEdge/actions/workflows/bunny-managed-image.yml/runs");
-      assert.equal(url.searchParams.get("head_sha"),SHA);
-      assert.equal(url.searchParams.get("branch"),"main");
-      assert.equal(url.searchParams.get("status"),"success");
       assert.equal(options.headers.Authorization,"Bearer SYNTHETIC_TEST_TOKEN");
-      return {ok:true,json:async()=>({workflow_runs:[eligibleRun]})};
+      if (url.pathname.endsWith("/runs")) {
+        assert.equal(url.pathname,
+          "/repos/aitishnyk/KumaEdge/actions/workflows/bunny-managed-image.yml/runs");
+        assert.equal(url.searchParams.get("head_sha"),SHA);
+        assert.equal(url.searchParams.get("branch"),"main");
+        assert.equal(url.searchParams.get("status"),"success");
+        return {ok:true,json:async()=>({workflow_runs:[eligibleRun]})};
+      }
+      assert.equal(url.pathname,"/repos/aitishnyk/KumaEdge/actions/runs/321/artifacts");
+      return {ok:true,json:async()=>({artifacts:[{
+        name:"kumaedge-oci-digests-"+SHA,expired:false,size_in_bytes:512
+      }]})};
     }
   });
-  assert.equal(called,1);
-  assert.deepEqual(result,{sha:SHA,verified:true});
+  assert.equal(called,2);
+  assert.deepEqual(result,{sha:SHA,verified:true,runId:321});
 });
 
 test("GitHub API failures and missing authenticated evidence always refuse deployment", async () => {
@@ -55,7 +61,12 @@ test("GitHub API failures and missing authenticated evidence always refuse deplo
   await assert.rejects(checkMainRelease(SHA,{
     repo:"aitishnyk/KumaEdge",token:"FAKE",
     request:async()=>({ok:true,json:async()=>({workflow_runs:[{...eligibleRun,event:"pull_request"}]})})
-  }),/No completed/);
+  }),/No successful main push publisher/);
+  await assert.rejects(checkMainRelease(SHA,{
+    repo:"aitishnyk/KumaEdge",token:"FAKE",
+    request:async (url) => ({ok:true,json:async()=> url.pathname.endsWith("/artifacts")
+      ? {artifacts:[]} : {workflow_runs:[eligibleRun]}})
+  }),/No successful main push publisher/);
   await assert.rejects(checkMainRelease(SHA,{
     repo:"aitishnyk/KumaEdge",token:"",
     request:async()=>{throw Error("Must not fetch with missing credentials");}

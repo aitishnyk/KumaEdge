@@ -14,6 +14,7 @@ on:
       - '.github/upstream-state.json'
       - 'scripts/guard-ghcr-publish.mjs'
       - 'scripts/verify-release-provenance.mjs'
+      - 'scripts/oci-release-evidence.mjs'
   push:
     branches: [main]
     paths:
@@ -29,6 +30,7 @@ on:
       - '.github/upstream-state.json'
       - 'scripts/guard-ghcr-publish.mjs'
       - 'scripts/verify-release-provenance.mjs'
+      - 'scripts/oci-release-evidence.mjs'
   schedule:
     - cron: '37 5 * * *'
   workflow_dispatch:
@@ -45,6 +47,22 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+      - name: Authenticate pinned upstream pulls to Docker Hub when configured
+        shell: bash
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$DOCKERHUB_USERNAME" && -n "$DOCKERHUB_TOKEN" ]]; then
+            printf '%s' "$DOCKERHUB_TOKEN" | docker login docker.io --username "$DOCKERHUB_USERNAME" --password-stdin
+            echo "Authenticated Docker Hub upstream pulls"
+          elif [[ -z "$DOCKERHUB_USERNAME" && -z "$DOCKERHUB_TOKEN" ]]; then
+            echo "::notice::Docker Hub pull is anonymous; shared CI runners may receive HTTP 429. Configure DOCKERHUB_USERNAME and DOCKERHUB_TOKEN as Actions secrets."
+          else
+            echo "::error::Configure both DOCKERHUB_USERNAME and DOCKERHUB_TOKEN, or neither"
+            exit 2
+          fi
       - name: Pull and build upstream runtime
         run: docker build --pull -t kumaedge:smoke .
       - name: Build optional encrypted backup sidecar
@@ -86,3 +104,16 @@ jobs:
           BACKUP_IMAGE="${IMAGE}-backup"
           docker tag kumaedge-backup:smoke "$BACKUP_IMAGE:$GITHUB_SHA"
           docker push "$BACKUP_IMAGE:$GITHUB_SHA"
+      - name: Record published OCI manifest digests
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.image_guard.outputs.publish == 'true'
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: node scripts/oci-release-evidence.mjs record "$RUNNER_TEMP/evidence.json"
+      - name: Upload publisher digest evidence
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.image_guard.outputs.publish == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: kumaedge-oci-digests-${{ github.sha }}
+          path: ${{ runner.temp }}/evidence.json
+          if-no-files-found: error
+          retention-days: 90
