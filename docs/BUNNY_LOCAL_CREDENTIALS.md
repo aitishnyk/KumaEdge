@@ -36,3 +36,11 @@ For updates, retain the existing Terraform state, a schema-compatible **whole-vo
 Public GitHub can verify release images, GHCR evidence, unauthenticated HTTPS/WebSocket and backup freshness without the account key. It CANNOT mutate Bunny resources and must not be configured to do so with the primary Bunny key.
 
 The source work alone proves neither Bunny billing approval nor live HTTPS, alerts, persistent restarts or recovery. See [real production acceptance #19](https://github.com/aitishnyk/KumaEdge/issues/19) and [hosted runner allocation #35](https://github.com/aitishnyk/KumaEdge/issues/35).
+
+## Validate an official published release without Bunny access
+
+On a trusted Mac, after a local checkout, run:
+
+    bash scripts/check-local-release.sh FULL_40_CHARACTER_PUBLISHED_MAIN_SHA
+
+This checks a completed successful official main-branch GHCR publishing run and unexpired digest artifact, downloads that artifact into a private temporary directory, signs into GHCR via the existing GitHub CLI token with an ephemeral Docker config, and compares the exact CURRENT registry manifest digests of both primary and backup images. The temporary token/config/evidence directory is deleted. No Bunny key is read, no paid resources are touched. A missing read:packages authorization fails closed. **Source main HEAD is not necessarily a published image tag.**
