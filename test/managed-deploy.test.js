@@ -1,19 +1,28 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-test("Production updater preflights both images before changing Bunny", () => {
-  const workflow = readFileSync(".github/workflows/deploy-managed.yml", "utf8");
-  const check = workflow.indexOf('docker manifest inspect "ghcr.io/${repo_lower}-backup:$TAG"');
-  const deployMain = workflow.indexOf("      - name: Deploy prebuilt immutable tag to Bunny");
-  const deployBackup = workflow.indexOf("      - name: Update optional SQLite backup worker");
-  assert.ok(check > 0 && check < deployMain);
-  assert.ok(deployBackup > deployMain);
-  assert.match(workflow,/vars.BUNNY_MC_BACKUP_ENABLED == 'true'/);
-  assert.match(workflow,/container: sqlite-offsite-backup/);
-  assert.doesNotMatch(workflow,/container-update-image@main/);
-  assert.match(workflow,/scripts\/verify-release-provenance\.mjs/);
-  assert.match(workflow,/actions: read/);
-  assert.match(workflow,/dispatch must use main/);
-  assert.ok(workflow.indexOf("Require a successful official main publishing run") < deployMain);
-  assert.ok(workflow.indexOf("Verify Bunny deployment prerequisites") < deployMain);
+
+test("public release preflight verifies SHA, publisher and both manifests but cannot deploy",()=>{
+  const w=readFileSync(".github/workflows/deploy-managed.yml","utf8");
+  const sha=w.indexOf("Validate SHA is from the protected main branch");
+  const release=w.indexOf("Require a successful official main publishing run");
+  const registry=w.indexOf("Verify release image exists before operator approval");
+  const download=w.indexOf("Download publisher digest evidence");
+  const verify=w.indexOf("Verify OCI tags match the published digest evidence");
+  const summary=w.indexOf("Summarize read-only release checks");
+  assert.ok(sha>0&&sha<release&&release<registry&&registry<download&&download<verify&&verify<summary);
+  assert.match(w,/docker manifest inspect "ghcr.io\/\$\{repo_lower\}-backup:\$TAG"/);
+  assert.match(w,/scripts\/verify-release-provenance\.mjs/);
+  assert.match(w,/scripts\/oci-release-evidence\.mjs verify/);
+  assert.match(w,/Production dispatch must use main/);
+  assert.match(w,/actions: read/);
+  assert.match(w,/NO Bunny API requests, container updates or paid resource changes/);
+  assert.doesNotMatch(w,/container-update-image|terraform apply|secrets\.BUNNYNET_API_KEY|api_key:/i);
+});
+
+test("Bunny metadata preflight is intentionally credential-free",()=>{
+  const w=readFileSync(".github/workflows/bunny-access-preflight.yml","utf8");
+  assert.match(w,/HAS_BUNNY_APP_ID/);
+  assert.match(w,/GitHub never receives Bunny account API keys/);
+  assert.doesNotMatch(w,/secrets\.|BUNNYNET_API_KEY|container-update-image/);
 });

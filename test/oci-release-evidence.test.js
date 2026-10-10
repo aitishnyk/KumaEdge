@@ -61,8 +61,9 @@ test("build uploads evidence after publishing; deploy verifies before mutation",
   const attest=deploy.indexOf("Require a successful official main publishing run for the exact SHA");
   const fetch=deploy.indexOf("Download publisher digest evidence");
   const compare=deploy.indexOf("Verify OCI tags match the published digest evidence");
-  const mutate=deploy.indexOf("Deploy prebuilt immutable tag to Bunny");
-  assert.ok(attest>=0 && attest<fetch && fetch<compare && compare<mutate);
+  const summary=deploy.indexOf("Summarize read-only release checks");
+  assert.ok(attest>=0 && attest<fetch && fetch<compare && compare<summary);
+  assert.doesNotMatch(deploy,/secrets\.BUNNYNET_API_KEY|container-update-image/);
 });
 
 test("Docker Hub pull authentication precedes both pinned upstream builds", () => {
