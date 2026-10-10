@@ -21,6 +21,7 @@ case "${1:-}" in
     ;;
   *) echo "Unknown option: $1" >&2; exit 2 ;;
 esac
+script_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 if [[ "$backup_mode" == "true" ]]; then
   root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../infra/bunny-with-backup" && pwd)"
 else
@@ -85,13 +86,43 @@ if [[ "$backup_mode" == "true" ]]; then
 fi
 export BUNNYNET_API_KEY TF_VAR_ghcr_read_token TF_VAR_ghcr_username
 
-plan="$(mktemp "$root/.kumaedge-plan.XXXXXXXX")"
+# Keep temporary registry credentials and Terraform plan off disk after any exit.
+plan=""
+release_docker_config=""
 cleanup() {
-  rm -f -- "$plan"
+  if [[ -n "$plan" ]]; then rm -f -- "$plan"; fi
+  if [[ -n "$release_docker_config" ]]; then rm -rf -- "$release_docker_config"; fi
   unset BUNNYNET_API_KEY TF_VAR_ghcr_read_token TF_VAR_ghcr_username TF_VAR_image_tag TF_VAR_backup_storage_zone TF_VAR_backup_storage_access_key TF_VAR_backup_age_recipient
 }
 trap cleanup EXIT
 
+# v0.17 opt-in digest pinning must be backed by exact SHA publisher evidence.
+# This is deliberately BEFORE any Terraform init, plan or paid apply.
+if [[ -n "${TF_VAR_image_digest:-}" || -n "${TF_VAR_backup_image_digest:-}" ]]; then
+  if [[ "${KUMAEDGE_RELEASE_EVIDENCE_FILE:-}" != /* ||
+        ! -f "${KUMAEDGE_RELEASE_EVIDENCE_FILE:-}" ]]; then
+    echo "Digest pinning requires KUMAEDGE_RELEASE_EVIDENCE_FILE as an absolute path to publisher evidence.json; no resources created." >&2
+    exit 2
+  fi
+  for binary in node docker; do
+    if ! command -v "$binary" >/dev/null 2>&1; then
+      echo "$binary is required to verify OCI digest pins; no resources created." >&2
+      exit 2
+    fi
+  done
+  release_docker_config="$(mktemp -d "${TMPDIR:-/tmp}/kumaedge-ghcr.XXXXXXXX")"
+  chmod 0700 "$release_docker_config"
+  printf '%s' "$TF_VAR_ghcr_read_token" |
+    docker --config "$release_docker_config" login ghcr.io --username "$TF_VAR_ghcr_username" --password-stdin >/dev/null
+  DOCKER_CONFIG="$release_docker_config" \
+  KUMAEDGE_GHCR_REPOSITORY="${TF_VAR_image_namespace:-aitishnyk}/${TF_VAR_image_name:-kumaedge}" \
+  KUMAEDGE_BACKUP_MODE="$backup_mode" \
+  node "$script_root/scripts/preflight-bunny-install.mjs" "$KUMAEDGE_RELEASE_EVIDENCE_FILE"
+  rm -rf -- "$release_docker_config"
+  release_docker_config=""
+fi
+
+plan="$(mktemp "$root/.kumaedge-plan.XXXXXXXX")"
 terraform init -input=false
 terraform fmt -check -recursive
 terraform validate -no-color
