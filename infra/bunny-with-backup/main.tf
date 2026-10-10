@@ -116,7 +116,7 @@ resource "bunnynet_compute_container_app" "kumaedge" {
     prevent_destroy = true
 
     precondition {
-      condition     = (var.image_digest == "" && var.backup_image_digest == "") || (
+      condition = (var.image_digest == "" && var.backup_image_digest == "") || (
         var.image_digest != "" && var.backup_image_digest != ""
       )
       error_message = "Pin both main and backup image digests together, or leave both unpinned."
