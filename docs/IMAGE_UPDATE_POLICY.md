@@ -4,7 +4,7 @@ The managed Dockerfile pins the official Uptime Kuma v2 image to a reviewed regi
 
 The [upstream image watcher](../.github/workflows/upstream-image-watch.yml) checks the current Docker Hub `louislam/uptime-kuma:2` digest daily, opens a branch with just the changed Dockerfile digest and attempts a review PR. If the repository denies PRs created by Actions, it posts a deduplicated Issue. **It never automatically merges or deploys upstream changes.**
 
-Before merging a digest update, review upstream security fixes, breaking changes, database-migration requirements, and the Docker container tests including the full-volume `age` recovery rehearsal. Production deployment is separately approved through a protected GitHub Actions workflow; it is not automatically updated.
+Before merging a digest update, review upstream security fixes, breaking changes, database-migration requirements, and the Docker container tests including the full-volume `age` recovery rehearsal. Production deployment is separately approved and performed locally; public GitHub Actions workflows verify released images without calling Bunny.
 
 Nightly and manually triggered managed Docker builds continue to run tests, but cannot publish GHCR tags. Only a reviewed push to `main` attempts publication. A guard checks both SHA-tagged images before pushing: both present means skip, exactly one present means fail closed, neither present means publish. It is a **workflow-level safeguard**, not a registry-enforced immutable tag policy against package administrators.
 
@@ -14,7 +14,7 @@ Technical reference: [Docker Buildx registry inspection](https://docs.docker.com
 
 ## v0.14 — Strict release eligibility and GHCR failure handling
 
-The manual production workflow now checks three independent gates **before** calling Bunny: the SHA belongs to `main`, a completed successful **push** execution of `.github/workflows/bunny-managed-image.yml` published that exact SHA, and the GHCR images are retrievable. It refuses missing Bunny credentials, an unsupported backup mode and dispatches from branches other than `main`.
+The public read-only release workflow checks three independent gates **without** calling Bunny: the SHA belongs to `main`, a completed successful **push** execution of `.github/workflows/bunny-managed-image.yml` published that exact SHA, and the GHCR images are retrievable. It does not request Bunny credentials; it rejects an unsupported backup mode and dispatches from branches other than `main`.
 
 The publisher distinguishes an **explicit missing registry manifest** from a registry authentication, timeout, rate-limit or network error. Ambiguous errors **fail closed** instead of treating an inaccessible manifest as safe to overwrite. If exactly one of two image tags exists, publication stops; the operator must reconcile it. Publication is serialised by Git commit SHA to avoid duplicate writers.
 
@@ -35,3 +35,7 @@ Before any Bunny update, production deployment requires a successful main push p
 The Bunny Managed build uses immutable Docker Hub base-image digests. Anonymous pulls from a shared GitHub Actions runner can hit Docker Hub's HTTP 429 unauthenticated rate limit before any application tests execute. Configure GitHub Actions repository secrets `DOCKERHUB_USERNAME` (Docker Hub username) and `DOCKERHUB_TOKEN` (read-only Docker Hub access token) to enable `docker login --password-stdin` **before** building either image. This does **not** change the pinned digests or disable `docker build --pull`. Configure both secrets together; a half-configured credential set fails before building.
 
 Without both secrets CI attempts anonymous pulls and may still be rate-limited; that is an infrastructure blocker, not a product regression, and it must not be bypassed by unpinned base images. Secrets must be configured in the repository's private Actions settings and never included in PRs, logs, or public Issues.
+
+## v0.18 — No Bunny account credentials in GitHub Actions
+
+Bunny's official Magic Containers update action documents account API key access and does not support sub-users. The public GitHub release workflow has been converted to read-only GHCR/publisher verification. No GitHub job performs Bunny mutations or receives an account key. Operators use a private workstation and reviewed Terraform plans. See [local-only credential policy](BUNNY_LOCAL_CREDENTIALS.md).
