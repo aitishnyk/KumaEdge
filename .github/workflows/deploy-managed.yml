@@ -1,4 +1,4 @@
-name: Bunny Managed - manual production deploy
+name: Bunny Managed - verified release preflight (NO DEPLOY)
 on:
   workflow_dispatch:
     inputs:
@@ -12,7 +12,7 @@ permissions:
   actions: read
 jobs:
   deploy:
-    environment: production
+    # Read-only verification. Do NOT attach Bunny account secrets here.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,22 +27,18 @@ jobs:
           [[ "$GITHUB_REF" == 'refs/heads/main' ]] || { echo 'Production dispatch must use main'; exit 1; }
           [[ "$TAG" =~ ^[a-f0-9]{40}$ ]] || { echo 'Expected full commit SHA'; exit 1; }
           git merge-base --is-ancestor "$TAG" origin/main || { echo 'Image SHA is not in main'; exit 1; }
-      - name: Verify Bunny deployment prerequisites without leaking values
+      - name: Validate non-secret release metadata only
         shell: bash
         env:
           APP_ID: ${{ vars.BUNNY_MC_APP_ID }}
-          BUNNY_KEY: ${{ secrets.BUNNYNET_API_KEY }}
           BACKUP_MODE: ${{ vars.BUNNY_MC_BACKUP_ENABLED }}
         run: |
           set -euo pipefail
-          [[ -n "$APP_ID" && -n "$BUNNY_KEY" ]] || {
-            echo "Bunny App ID and API key must both be configured in the protected environment"
-            exit 2
-          }
           [[ "$BACKUP_MODE" == "true" || -z "$BACKUP_MODE" || "$BACKUP_MODE" == "false" ]] || {
-            echo "BUNNY_MC_BACKUP_ENABLED must be either true or false"
+            echo "BUNNY_MC_BACKUP_ENABLED must be true, false or empty"
             exit 2
           }
+          [[ -n "$APP_ID" ]] || echo "::notice::Bunny App ID not configured; no Bunny account access requested."
       - name: Require a successful official main publishing run for the exact SHA
         id: publisher
         shell: bash
@@ -56,7 +52,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Verify release image exists before Bunny changes
+      - name: Verify release image exists before operator approval
         shell: bash
         env:
           TAG: ${{ inputs.image_tag }}
@@ -88,18 +84,16 @@ jobs:
         env:
           IMAGE_TAG: ${{ inputs.image_tag }}
         run: node scripts/oci-release-evidence.mjs verify "$RUNNER_TEMP/kumaedge-release/evidence.json"
-      - name: Deploy prebuilt immutable tag to Bunny
-        uses: BunnyWay/actions/container-update-image@4b22fe0b319386b3913117daf97729409dd0a6ef
-        with:
-          app_id: ${{ vars.BUNNY_MC_APP_ID }}
-          api_key: ${{ secrets.BUNNYNET_API_KEY }}
-          container: kumaedge
-          image_tag: ${{ inputs.image_tag }}
-      - name: Update optional SQLite backup worker to the same tested SHA
-        if: vars.BUNNY_MC_BACKUP_ENABLED == 'true'
-        uses: BunnyWay/actions/container-update-image@4b22fe0b319386b3913117daf97729409dd0a6ef
-        with:
-          app_id: ${{ vars.BUNNY_MC_APP_ID }}
-          api_key: ${{ secrets.BUNNYNET_API_KEY }}
-          container: sqlite-offsite-backup
-          image_tag: ${{ inputs.image_tag }}
+      - name: Summarize read-only release checks (NO Bunny changes)
+        shell: bash
+        env:
+          TAG: ${{ inputs.image_tag }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Verified published images for SHA $TAG"
+            echo "GHCR provenance, both digest manifests and non-secret metadata checked."
+            echo "NO Bunny API requests, container updates or paid resource changes."
+            echo "Bunny account credentials must remain LOCAL ONLY."
+            echo "Use docs/BUNNY_LOCAL_CREDENTIALS.md for approved local deployment."
+          } >> "$GITHUB_STEP_SUMMARY"
