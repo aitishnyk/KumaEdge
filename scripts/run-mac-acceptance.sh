@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# One-shot local macOS acceptance. Not a registered GitHub Actions runner.
+# One-shot local macOS acceptance for one reviewed PR head. Not a public self-hosted runner.
 # No Bunny API, paid provisioning, or untrusted pull-request execution.
 set -uo pipefail
 export LC_ALL=C
 umask 077
 REPO="aitishnyk/KumaEdge"
-PR=34
+PR="${2:-34}"
 
-if [ "$#" -ne 1 ] || ! [[ "$1" =~ ^[a-f0-9]{40}$ ]]; then
-  echo "Usage: bash run-mac-acceptance.sh EXACT_40_CHAR_REVIEWED_PR_SHA" >&2; exit 2
+if { [ "$#" -ne 1 ] && [ "$#" -ne 2 ]; } || ! [[ "$1" =~ ^[a-f0-9]{40}$ ]] || ! [[ "$PR" =~ ^[1-9][0-9]*$ ]]; then
+  echo "Usage: bash run-mac-acceptance.sh EXACT_40_CHAR_REVIEWED_PR_SHA [PR_NUMBER]" >&2; exit 2
 fi
 SHA="$1"
 if [ "$(uname -s)" != "Darwin" ]; then
@@ -165,9 +165,9 @@ else
 fi
 
 {
-  echo "### macOS local acceptance (NOT a GitHub Actions runner)"
+  echo "### macOS local acceptance for PR #$PR (NOT a GitHub Actions runner)"
   echo
-  echo "Source: reviewed PR #34, exact SHA \`$SHA\`."
+  echo "Source: reviewed PR #$PR, exact SHA \`$SHA\`."
   echo
   echo "| Test | Result |"
   echo "|---|---|"
@@ -181,7 +181,7 @@ fi
 } > "$REPORT"
 cat "$REPORT"
 echo
-echo "Posting only the sanitized summary to PR #34..."
+echo "Posting only the sanitized summary to PR #$PR..."
 if gh pr comment "$PR" --repo "$REPO" --body-file "$REPORT" >/dev/null; then
   echo "Posted to https://github.com/$REPO/pull/$PR"
 else
