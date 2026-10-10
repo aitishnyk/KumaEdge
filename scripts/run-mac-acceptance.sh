@@ -70,6 +70,45 @@ else
 fi
 check "Bash static syntax" bash-syntax bash -n scripts/install-bunny.sh scripts/run-mac-acceptance.sh scripts/smoke-managed.sh scripts/smoke-disaster-recovery.sh || true
 
+# Intel macOS Homebrew sometimes cannot build age because old Xcode CLT forces
+# Go compilation. Use the upstream PREBUILT archive instead, with a pinned SHA-256.
+# Install ONLY inside this private disposable test directory; no sudo/CLT required.
+if ! command -v age >/dev/null 2>&1 || ! command -v age-keygen >/dev/null 2>&1; then
+  portable_age_dir="$ROOT/portable-age"
+  mkdir -p "$portable_age_dir"
+  case "$(uname -m)" in
+    x86_64)
+      age_arch=amd64
+      age_sha256="1d1e4bc66e1427edad7739ae7616157de0e79db8b6d2a1497d7d9925fb06a539"
+      ;;
+    arm64)
+      age_arch=arm64
+      age_sha256="e2020b073c44f692685a24d6abc378817eb81ffaaf49fd0531ef8565f767f2f5"
+      ;;
+    *)
+      age_arch=""
+      echo "Unsupported macOS CPU for portable age: $(uname -m)" >&2
+      ;;
+  esac
+  if [ -n "$age_arch" ] && command -v curl >/dev/null 2>&1 && command -v shasum >/dev/null 2>&1; then
+    age_archive="age-v1.3.2-darwin-$age_arch.tar.gz"
+    age_url="https://github.com/FiloSottile/age/releases/download/v1.3.2/$age_archive"
+    echo "Fetching the upstream age v1.3.2 $age_arch binary (SHA-256 checked; no Homebrew/Xcode)."
+    if curl -fLSs --retry 2 --connect-timeout 15 --max-time 180 "$age_url" -o "$portable_age_dir/$age_archive" &&
+      (cd "$portable_age_dir" && printf '%s  %s\n' "$age_sha256" "$age_archive" | shasum -a 256 -c -) &&
+      tar -xzf "$portable_age_dir/$age_archive" -C "$portable_age_dir" age/age age/age-keygen &&
+      test -f "$portable_age_dir/age/age" &&
+      test -f "$portable_age_dir/age/age-keygen"; then
+      chmod 0700 "$portable_age_dir/age/age" "$portable_age_dir/age/age-keygen"
+      PATH="$portable_age_dir/age:$PATH"
+      export PATH
+      echo "Verified upstream portable age v1.3.2 available to local tests."
+    else
+      echo "Cannot verify/extract portable age; encrypted recovery tests remain SKIP." >&2
+    fi
+  fi
+fi
+
 if command -v age >/dev/null && command -v age-keygen >/dev/null && command -v python3 >/dev/null; then
   check "Real age encrypted full-volume backup and restore" age-recovery bash -c '
     set -euo pipefail
