@@ -63,3 +63,14 @@ variable "image_tag" {
     error_message = "image_tag must be an immutable 40-character lowercase Git SHA."
   }
 }
+
+variable "image_digest" {
+  description = "Optional publisher-verified OCI digest for the main image (sha256:64 lowercase hex)."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.image_digest == "" || can(regex("^sha256:[0-9a-f]{64}$", var.image_digest))
+    error_message = "image_digest must be empty or lowercase sha256:64-hex."
+  }
+}
