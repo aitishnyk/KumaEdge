@@ -22,6 +22,7 @@ resource "bunnynet_compute_container_app" "kumaedge" {
     image_namespace   = var.image_namespace
     image_name        = var.image_name
     image_tag         = var.image_tag
+    image_digest      = var.image_digest == "" ? null : var.image_digest
     image_pull_policy = "IfNotPresent"
 
     # Anycast avoids an automatically configured shared CDN content cache.
@@ -65,6 +66,7 @@ resource "bunnynet_compute_container_app" "kumaedge" {
     image_namespace   = var.image_namespace
     image_name        = "kumaedge-backup"
     image_tag         = var.image_tag
+    image_digest      = var.backup_image_digest == "" ? null : var.backup_image_digest
     image_pull_policy = "IfNotPresent"
 
     volumemount {
@@ -112,6 +114,13 @@ resource "bunnynet_compute_container_app" "kumaedge" {
       error_message = "Optional backups require a private Storage Zone, write key, and valid age recipient."
     }
     prevent_destroy = true
+
+    precondition {
+      condition = (var.image_digest == "" && var.backup_image_digest == "") || (
+        var.image_digest != "" && var.backup_image_digest != ""
+      )
+      error_message = "Pin both main and backup image digests together, or leave both unpinned."
+    }
 
     precondition {
       condition     = var.volume_gb >= 2

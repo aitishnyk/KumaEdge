@@ -22,6 +22,7 @@ resource "bunnynet_compute_container_app" "kumaedge" {
     image_namespace   = var.image_namespace
     image_name        = var.image_name
     image_tag         = var.image_tag
+    image_digest      = var.image_digest == "" ? null : var.image_digest
     image_pull_policy = "IfNotPresent"
 
     # Anycast avoids an automatically configured shared CDN content cache.

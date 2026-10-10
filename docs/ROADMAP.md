@@ -76,3 +76,10 @@
 - [ ] Signed SLSA/OCI attestation and independent supply-chain verification
 - [x] Add optional authenticated Docker Hub base pulls with pairwise credential validation (mitigates shared-runner anonymous HTTP 429)
 - [ ] Configure private Docker Hub read-only Actions credentials for rate-limit-resistant build acceptance
+
+## v0.16 — Optional Terraform digest pins (source only)
+- [x] Support optional `image_digest` in provider 0.19.1 for the normal single-container module
+- [x] Support validated main/backup digest pair in the optional offsite backup module
+- [x] Keep interactive paid-plan consent and document artifact-based digest selection
+- [ ] Prove digest enforcement, restarts and rollback on a real Bunny app
+- [ ] Replace tag-only update path with a tested digest-native rollout before claiming end-to-end immutability

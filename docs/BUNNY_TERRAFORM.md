@@ -49,3 +49,13 @@ Official references:
 ## Release eligibility at deployment time
 
 The production GitHub Action checks that the selected SHA belongs to `main` **and** has a completed, successful official image-publishing GitHub Actions push run. Both GHCR packages must be available before the Bunny image-update action begins. A SHA with merely passing tests or a locally built Docker image is not accepted. The installer remains interactive and requires the operator to select a previously published SHA; its syntax check is not an online provenance verification. Never place Terraform state or Bunny secrets in public CI.
+
+## v0.16 — Optional OCI digest pins for new installations
+
+The existing pinned BunnyWay/bunnynet v0.19.1 provider exposes optional `container.image_digest` alongside mandatory `image_tag`. The standard Terraform root now accepts `TF_VAR_image_digest`; the backup variant also accepts `TF_VAR_backup_image_digest`. Both values are lowercase `sha256:` followed by 64 hex characters. They default to empty (the original tag-only behavior) for backwards compatibility.
+
+For a **new deployment**, use only digests taken from the unexpired `kumaedge-oci-digests-<FULL_MAIN_SHA>` artifact of the official successful main-branch publisher, and independently compare them with the corresponding GHCR manifests. Do not substitute a digest from an unreviewed commit or a moving tag. The `--with-backup` variant rejects partial pinning, so both main and backup digests must be provided together, or neither.
+
+Set the optional variables privately in your trusted terminal, then use the existing `bash scripts/install-bunny.sh` or `bash scripts/install-bunny.sh --with-backup` interactive installer and review its complete **paid** Terraform plan. The plan must show exactly the digest(s) from the publisher evidence. No examples embed a real hash or any credential.
+
+**Important limits:** This does not automatically fetch/verify the publisher artifact, retrofit existing Terraform state or upgrade the manual `container-update-image` action (which still operates by tag). Provider schema support is verified, but **Bunny runtime enforcement of the digest is untested** without a real paid test instance; verify the created template, running pod, restart and rollback before declaring digest-immutable production. Never silently apply an image_digest edit to an existing deployment.
