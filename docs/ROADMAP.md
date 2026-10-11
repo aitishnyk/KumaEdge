@@ -112,3 +112,11 @@
 - [x] Parse unindented root `Name`, `MediaType`, `Digest` before any platform manifest list; reject missing, duplicate or mismatched values
 - [x] Add regression for multi-platform child digest injection, malformed root and old Buildx CLI options
 - [ ] Confirm actual current GHCR main/backup root digest equality with publisher evidence on Mac
+
+### v0.18.1 GHCR compatibility — missing macOS Buildx plugin
+- [x] Remove Docker and Buildx prerequisite from local publisher/OCI verifier; use direct read-only GHCR Distribution API
+- [x] Verify root manifest SHA-256 of original network bytes against `Docker-Content-Digest` before publisher evidence comparison
+- [x] Prefer anonymous repository pull token, fallback to GitHub CLI read:packages only for authorized private GHCR images, no Bunny key
+- [x] Add mocked authentication/registry/malformed digest and dual-image HTTP verification regression tests
+- [ ] Operator Mac: prove exact new PR head full suite and real publisher/registry root digest checks
+- [ ] Hosted GitHub CI runner/CodeQL and live Bunny production still NOT_RUN/NOT_CLAIMED
