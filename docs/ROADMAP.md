@@ -104,5 +104,11 @@
 - [x] Diagnose Node CLI guard /var -> /private/var realpath mismatch causing silent exit 0
 - [x] Resolve direct CLI entrypoints with filesystem realpath and safe file URL conversion across all four affected scripts
 - [x] Add symlink and import-only regression tests, plus fail-closed empty publisher proof diagnostics
-- [ ] Verify full exact-tree regression and live read-only GHCR release check on operator Mac (no Bunny key)
+- [ ] Re-run exact-tree regression and live GHCR release check on operator Mac (no Bunny key); initial macOS run 12/12 PASS but OCI manifest command rejected --format
 - [ ] GitHub-hosted Actions runner allocation and live Bunny deployment remain separate gates
+
+### v0.18.1 portability follow-up — OCI digest inspection
+- [x] Drop unsupported `--format` dependence in `docker buildx imagetools inspect` on operator macOS
+- [x] Parse unindented root `Name`, `MediaType`, `Digest` before any platform manifest list; reject missing, duplicate or mismatched values
+- [x] Add regression for multi-platform child digest injection, malformed root and old Buildx CLI options
+- [ ] Confirm actual current GHCR main/backup root digest equality with publisher evidence on Mac

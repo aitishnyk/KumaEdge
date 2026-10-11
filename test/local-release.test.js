@@ -21,3 +21,10 @@ test("local release preflight rejects silent or malformed publisher output",()=>
   assert.match(s,/Publisher proof CLI returned an invalid run_id format/);
   assert.match(s,/run_id=\(\[0-9\]\+\)/);
 });
+
+test("local release uses OCI root manifest verifier without unsupported CLI formatting",()=>{
+  const s=readFileSync("scripts/oci-release-evidence.mjs","utf8");
+  assert.match(s,/parseImagetoolsRootDigest/);
+  assert.match(s,/\["buildx", "imagetools", "inspect", ref\]/);
+  assert.doesNotMatch(s, /"--format"/);
+});

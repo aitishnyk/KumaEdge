@@ -44,3 +44,5 @@ On a trusted Mac, after a local checkout, run:
     bash scripts/check-local-release.sh FULL_40_CHARACTER_PUBLISHED_MAIN_SHA
 
 This checks a completed successful official main-branch GHCR publishing run and unexpired digest artifact, downloads that artifact into a private temporary directory, signs into GHCR via the existing GitHub CLI token with an ephemeral Docker config, and compares the exact CURRENT registry manifest digests of both primary and backup images. The temporary token/config/evidence directory is deleted. No Bunny key is read, no paid resources are touched. A missing read:packages authorization fails closed. **Source main HEAD is not necessarily a published image tag.**
+
+**macOS Buildx compatibility (v0.18.1):** The read-only release verifier uses plain `docker buildx imagetools inspect IMAGE` and extracts only the root manifest digest before platform details. It deliberately avoids the `--format` flag rejected by some installed Docker versions; missing or ambiguous root digests are fatal. Publisher evidence and BOTH current registry digest checks remain mandatory.

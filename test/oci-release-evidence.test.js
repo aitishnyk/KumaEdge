@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  recordEvidence, verifyEvidence, manifestDigest
+  recordEvidence, verifyEvidence, manifestDigest, parseImagetoolsRootDigest
 } from "../scripts/oci-release-evidence.mjs";
 
 const sha = "f".repeat(40);
@@ -78,4 +78,48 @@ test("Docker Hub pull authentication precedes both pinned upstream builds", () =
   assert.match(workflow,/Configure both DOCKERHUB_USERNAME and DOCKERHUB_TOKEN/);
   assert.match(workflow,/docker build --pull -t kumaedge:smoke/);
   assert.match(workflow,/docker build --pull -f Dockerfile.backup/);
+});
+
+test("Docker Buildx plain inspect extracts only the ROOT OCI digest", () => {
+  const ref = "ghcr.io/aitishnyk/kumaedge:" + sha;
+  const child = "sha256:" + "f".repeat(64);
+  const output = [
+    "Name:      " + ref,
+    "MediaType: application/vnd.oci.image.index.v1+json",
+    "Digest:    " + mainDigest,
+    "",
+    "Manifests:",
+    "  Name:      " + ref + "@" + child,
+    "  MediaType: application/vnd.oci.image.manifest.v1+json",
+    "  Digest:    " + child,
+    "  Platform:  linux/amd64",
+    ""
+  ].join("\n");
+  assert.equal(parseImagetoolsRootDigest(ref, output), mainDigest);
+  assert.equal(parseImagetoolsRootDigest(ref, output.replaceAll("\n", "\r\n")), mainDigest);
+  assert.equal(parseImagetoolsRootDigest(ref,
+    ["Name:      " + ref, "MediaType: application/vnd.oci.image.manifest.v1+json",
+      "Digest:    " + mainDigest].join("\n")), mainDigest);
+  const source = readFileSync("scripts/oci-release-evidence.mjs", "utf8");
+  assert.match(source, /\["buildx", "imagetools", "inspect", ref\]/);
+  assert.doesNotMatch(source, /"--format"|--raw/);
+});
+
+test("plain Buildx parser refuses child-only, mismatched or ambiguous root digest", () => {
+  const ref = "ghcr.io/aitishnyk/kumaedge:" + sha;
+  const good = "Name: " + ref + "\nMediaType: application/vnd.oci.image.index.v1+json\nDigest: " + mainDigest + "\n";
+  for (const sample of [
+    "",
+    "{}",
+    "Manifests:\n  Name: " + ref + "\n  Digest: " + mainDigest,
+    good.replace("Digest: " + mainDigest + "\n", ""),
+    good.replace(ref, ref + "-not-same"),
+    good + "Digest: " + backupDigest + "\n",
+    good.replace("MediaType: application/vnd.oci.image.index.v1+json\n", ""),
+    good.replace(mainDigest, "sha256:invalid"),
+    good.replace("Name: " + ref, "Name: " + ref + "\nName: " + ref)
+  ]) {
+    assert.throws(() => parseImagetoolsRootDigest(ref, sample),
+      /Missing|ambiguous|invalid/, "Unexpectedly accepted: " + sample);
+  }
 });
