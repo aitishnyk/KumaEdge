@@ -122,15 +122,16 @@ test("image guard writes publish outputs only after both manifests were checked"
   } finally {rmSync(dir,{recursive:true,force:true});}
 });
 
-test("workflow gates Bunny mutations after source provenance and registry checks", () => {
+test("public release verifies provenance before registry but NEVER modifies Bunny", () => {
   const deploy=readFileSync(".github/workflows/deploy-managed.yml","utf8");
   const build=readFileSync(".github/workflows/bunny-managed-image.yml","utf8");
-  const check=deploy.indexOf("node scripts/verify-release-provenance.mjs");
-  const registry=deploy.indexOf("Verify release image exists before Bunny changes");
-  const bunny=deploy.indexOf("Deploy prebuilt immutable tag to Bunny");
-  assert.ok(check>0 && check<registry && registry<bunny);
+  const source=deploy.indexOf("node scripts/verify-release-provenance.mjs");
+  const registry=deploy.indexOf("Verify release image exists before operator approval");
+  const evidence=deploy.indexOf("node scripts/oci-release-evidence.mjs verify");
+  assert.ok(source>0 && source<registry && registry<evidence);
   assert.match(deploy,/actions: read/);
   assert.match(deploy,/Production dispatch must use main/);
+  assert.doesNotMatch(deploy,/secrets\.BUNNYNET_API_KEY|container-update-image|terraform apply/);
   assert.match(build,/concurrency:/);
   assert.match(build,/node scripts\/guard-ghcr-publish.mjs/);
   assert.match(build,/steps.image_guard.outputs.publish == 'true'/);

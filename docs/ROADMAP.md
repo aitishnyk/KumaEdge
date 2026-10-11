@@ -89,3 +89,12 @@
 - [x] GHCR read-only token scoped to disposable Docker credential directory; no persistent local Docker login side effect
 - [x] Negative tests for retargeted images, bad artifact, unpaired backup pins and registry failures
 - [ ] Run authenticated end-to-end digest-pinned installation and rollback on a real Bunny account
+
+## v0.18 — Public-repository Bunny account key isolation (source)
+- [x] Remove account key inputs and Bunny mutation actions from all public GitHub workflows
+- [x] Preserve SHA, publisher and GHCR digest release verification as a read-only workflow
+- [x] Bunny preflight uses non-sensitive app metadata only
+- [x] Add regression checks prohibiting Bunny account keys and deploy actions in workflows
+- [x] Document hidden-prompt local install, Terraform state sensitivity and paid confirmation
+- [ ] Hosted GitHub runners/CodeQL fully green (issue #35)
+- [ ] Live paid Bunny HTTPS, alerts, durable restarts and isolated recovery acceptance (issue #19)

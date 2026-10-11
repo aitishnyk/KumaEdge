@@ -16,7 +16,7 @@ A public MIT-licensed project with two tracks:
 1. Install Terraform 1.5+. Clone this repository.
 2. Obtain your Bunny account API key and a GitHub `read:packages` token that can pull the KumaEdge container image. Never paste credentials into a public issue or chat.
 3. From a **trusted personal terminal**, run `bash scripts/install-bunny.sh`. The script securely prompts for credentials, shows an infrastructure plan and **requires explicit paid-deployment approval**.
-4. After provisioning, verify CDN caching is disabled for logged-in/dynamic routes, HTTPS, WebSocket, data persistence on restarts and alerts. Configure a protected production environment and `BUNNY_MC_APP_ID` for later image updates.
+4. After provisioning, verify HTTPS, WebSocket, safe caching, persistence and notifications. Optionally store the non-secret `BUNNY_MC_APP_ID` for read-only checks. **Never put your Bunny account key in GitHub Secrets**. See [local-only credentials](docs/BUNNY_LOCAL_CREDENTIALS.md).
 
 The installer provisions one region, one replica, and persistent storage at `/app/data`. It never runs automatically in CI, never uploads Terraform state, and does not hide cloud charges. Local Terraform state must be securely kept and backed up.
 
@@ -34,7 +34,7 @@ A verified SQLite snapshot is **not** a complete `/app/data` backup or proof of 
 
 - [Container build and smoke tests](.github/workflows/bunny-managed-image.yml)
 - [Terraform configuration and validation](infra/bunny/)
-- [Manual reviewed production image rollout](.github/workflows/deploy-managed.yml)
+- [Read-only image release evidence preflight (NO Bunny deployment)](.github/workflows/deploy-managed.yml)
 - [Edge-only demo](docs/BUNNY_DEPLOY.md)
 - [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [MIT License](LICENSE)
 
@@ -49,3 +49,5 @@ A verified SQLite snapshot is **not** a complete `/app/data` backup or proof of 
 - [Real Docker encrypted full-volume restore certification](docs/REAL_DOCKER_DR_ACCEPTANCE.md) (disposable test volumes; not a live Bunny recovery claim)
 
 - [Pinned image digest and upstream security review workflow](docs/IMAGE_UPDATE_POLICY.md) (reviewed PRs; no unapproved production patching)
+
+**v0.18 credential boundary:** The Bunny Magic Containers action requires an account key rather than an app-scoped sub-user token. All public GitHub workflows verify releases but cannot modify Bunny or access your account API key. [Local deployment and key safety](docs/BUNNY_LOCAL_CREDENTIALS.md).

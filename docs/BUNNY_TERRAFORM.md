@@ -26,7 +26,7 @@ This directory contains reproducible infrastructure-as-code for the **managed** 
 
 5. **Critical:** the Terraform module now uses Anycast as the default public endpoint to avoid a shared CDN cache. Anycast by itself does not establish HTTPS/TLS. **Do not enter admin credentials over HTTP.** Configure a trusted HTTPS-terminating front door (for example a properly hardened Bunny CDN Pull Zone with *all* authenticated, API, HTML and dynamic routes bypassing shared cache), then confirm the actual public address serves HTTPS, private/no-store responses and working Engine.IO polling/WebSocket. Bunny endpoint details and TLS depend on the live account. Never assume a passing Terraform plan provides a secure public website.
 6. After configuring an HTTPS hostname, run: `node scripts/check-production.mjs --url https://your-kumaedge-host.example`. This fails closed on missing explicit private/no-store cache policy, HTTP redirects and Engine.IO failures. It does not authenticate or inspect private content.
-7. Configure the GitHub Actions repository variable `BUNNY_MC_APP_ID` with the printed `app_id`, and `BUNNYNET_API_KEY` in Actions secrets for future *manually approved* image updates. Enable a protected `production` environment.
+7. You may set the **non-secret** `BUNNY_MC_APP_ID` GitHub Actions variable for read-only metadata checks. **Never put your Bunny account key in GitHub repository or production environment secrets.** Future updates must run locally using private Terraform state, reviewed plans and explicit approval. See [local-only credentials](BUNNY_LOCAL_CREDENTIALS.md).
 8. Open the HTTPS URL and configure Uptime Kuma. Add a monitor and alert channel. Verify an actual down/recovery incident, restart the Bunny app, ensure all data is still available, and confirm checks continue while your browser is closed.
 9. Maintain encrypted/offsite backups of `/app/data`, and preserve the Terraform state. Do not run `terraform destroy` on real customer data.
 
@@ -35,7 +35,7 @@ This directory contains reproducible infrastructure-as-code for the **managed** 
 - One static region, exactly one replica and a persistent volume. No automatic horizontal scaling with SQLite.
 - The `prevent_destroy` lifecycle rule protects the app against accidental Terraform deletion/replacement. The registry resource can still be changed, so always review the plan.
 - **Existing Terraform installs:** changing an endpoint from CDN to Anycast may recreate the public endpoint and change the hostname. Review the plan and do not apply this change blindly.\n- This is a **new-install** module, not an import/migration tool for a pre-existing Magic Containers app. Do not apply it against an app you've already created manually without first properly importing it into your state.
-- Switching the `image_tag` requires a successful build and acceptance; the existing manual GitHub deploy workflow updates an already-created app, so avoid simultaneously managing image tags with Terraform unless you reconcile state.
+- Switching the `image_tag` requires a successful build and acceptance; the GitHub workflow is now read-only and never updates Bunny. Use your retained private Terraform state and a carefully reviewed local plan for changes to an existing app.
 - Anycast avoids automatic content caching; HTTPS still needs to be provided separately. Sessions, security, cache rules of any added proxy, persistence after restart, and alert delivery need live acceptance. GitHub CI cannot certify them without access to your account.
 - Public forks must supply their own Bunny account, registry credentials and image tags. Forking this repository does **not** grant access to the publisher's Bunny resources.
 
@@ -48,7 +48,7 @@ Official references:
 
 ## Release eligibility at deployment time
 
-The production GitHub Action checks that the selected SHA belongs to `main` **and** has a completed, successful official image-publishing GitHub Actions push run. Both GHCR packages must be available before the Bunny image-update action begins. A SHA with merely passing tests or a locally built Docker image is not accepted. The installer remains interactive and requires the operator to select a previously published SHA; its syntax check is not an online provenance verification. Never place Terraform state or Bunny secrets in public CI.
+The read-only GitHub release workflow checks that the selected SHA belongs to `main` **and** has a completed, successful official image-publishing GitHub Actions push run. Both GHCR packages must be available before a separately approved **local** Bunny update. A SHA with merely passing tests or a locally built Docker image is not accepted. The installer remains interactive and requires the operator to select a previously published SHA; its syntax check is not an online provenance verification. Never place Terraform state or Bunny secrets in public CI.
 
 ## v0.16 — Optional OCI digest pins for new installations
 
@@ -73,3 +73,7 @@ bash scripts/install-bunny.sh --with-backup
 The installer requires Docker CLI with Buildx and Node.js 20+ **only when digest pinning is selected**. It logs into GHCR using the supplied existing read-only packages token, placing temporary Docker credentials in a private throwaway configuration directory instead of the user's persistent Docker config. It verifies that the artifact matches the selected repository and SHA, confirms both actual GHCR manifest digests still equal the publisher evidence, and confirms selected Terraform digest pins equal the artifact. Any mismatch or inaccessible registry stops **before** Terraform initialization, the paid plan, and apply. Temporary registry login data is removed even on failure.
 
 The artifact **must** originate from the reviewed main publisher run; the script checks its content and the current registry state but cannot independently attest who uploaded a local JSON file. Keep its provenance chain intact. Without a digest pin, existing tag-only installs remain compatible and are **not** called digest-verified. No new account provisioning, Terraform apply or Bunny live validation occurs as part of this check.
+
+## v0.18 — Account key isolation
+
+The Bunny Account API Key is for **local interactive provisioning only**. It is never installed as a public GitHub repository/environment secret. The manual workflow verifies publisher and GHCR digests only. Existing deployments must be updated with retained Terraform state and a manually reviewed local plan. See [BUNNY_LOCAL_CREDENTIALS.md](BUNNY_LOCAL_CREDENTIALS.md).

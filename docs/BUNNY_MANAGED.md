@@ -18,10 +18,10 @@ node scripts/check-production.mjs --url https://monitor.example.com
 
 The command audits HTML, Engine.IO polling **and WebSocket** transport, requiring safe visible cache policy on HTML and Engine.IO polling. See [production acceptance](PRODUCTION_ACCEPTANCE.md) for mandatory manual checks: login, 2FA, notification delivery, volume restart, full-volume backups/restores, and no-browser scheduler operation.
 
-For upgrades, use the reviewed immutable image tagged with a successful main-branch SHA, and keep the `production` GitHub environment protected. Rollbacks require compatible database schema; restoring an older image alone may not reverse schema migrations.
+For upgrades, use reviewed GHCR publisher/digest evidence and apply changes locally from the private retained Terraform state, after an offline whole-volume backup. The public GitHub release workflow is read-only; it never gets Bunny account credentials. Rollbacks require compatible database schema; restoring an older image alone may not reverse schema migrations.
 
 References:
 - https://docs.bunny.net/docs/magic-containers-how-to-deploy-your-app
 - https://github.com/louislam/uptime-kuma/wiki/Reverse-Proxy
 
-For optional backup-worker installs, set `BUNNY_MC_BACKUP_ENABLED=true` in GitHub Actions variables so the protected production deployment updates both `kumaedge` and `sqlite-offsite-backup`. The workflow checks both package tags first; updates are sequential, **not an atomic two-container release**.
+For optional backup-worker installs, set the non-secret `BUNNY_MC_BACKUP_ENABLED=true` in GitHub Actions variables only to validate both published images. It does not update Bunny. Apply verified image pairs using reviewed local Terraform plans. See [local-only credentials](BUNNY_LOCAL_CREDENTIALS.md).

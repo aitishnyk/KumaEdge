@@ -27,7 +27,7 @@ The test does not prove the absence of caching across all routes or authenticate
 5. Restart the Bunny app (without detaching/deleting the volume). Confirm login, monitors, prior heartbeats and incidents survive.
 6. Back up **the entire** `/app/data` directory using a trusted volume-access mechanism and restore it **in a separate isolated test instance**. The SQLite-only snapshot utility is partial.
 7. Record the published immutable GHCR image SHA, Bunny App ID, endpoint hostname and **non-secret** acceptance evidence privately.
-8. Keep production deployment behind an explicitly approved GitHub Actions environment. Validate successful smoke again after each upstream patch/upgrade.
+8. Keep Bunny Account API Key local; GitHub workflows only verify images/unauthenticated HTTPS and never deploy. Review local Terraform updates and re-run production acceptance after each patch/upgrade.
 
 Do not treat a successful unauthenticated audit as permission to enable public signups or serve authenticated content through a shared cache.
 
