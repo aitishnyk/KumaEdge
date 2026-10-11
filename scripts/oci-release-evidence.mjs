@@ -4,6 +4,7 @@
  * GitHub artifacts are NOT signed OCI attestations.
  */
 import { isDirectInvocation } from "./cli-entrypoint.mjs";
+import { ghcrRootDigest } from "./ghcr-registry-http.mjs";
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 
@@ -93,11 +94,34 @@ export function verifyEvidence(evidence, sha, repository, inspect = inspectRegis
   return true;
 }
 
+/**
+ * Verify publisher root OCI evidence using only HTTPS GitHub Container Registry.
+ * A strict dual-image check: never accept one good image as sufficient.
+ */
+export async function verifyEvidenceHttp(evidence, sha, repository, lookup = ghcrRootDigest) {
+  const refs = targets(sha, repository);
+  if (!evidence || evidence.schema !== SCHEMA || evidence.sha !== sha ||
+      evidence.repository !== repository.toLowerCase() || !evidence.images ||
+      !evidence.images.main || !evidence.images.backup) {
+    throw Error("Publisher evidence has wrong schema, SHA or repository");
+  }
+  for (const key of ["main", "backup"]) {
+    const entry = evidence.images[key];
+    if (entry.ref !== refs[key] || !DIGEST.test(entry.digest || "")) {
+      throw Error("Publisher evidence contains invalid " + key + " image metadata");
+    }
+    if (await lookup(refs[key]) !== entry.digest) {
+      throw Error("GHCR " + key + " tag digest changed since publisher evidence");
+    }
+  }
+  return true;
+}
+
 if (isDirectInvocation(import.meta.url)) {
   const [mode, filename] = process.argv.slice(2);
   try {
-    if (!["record", "verify"].includes(mode) || !filename) {
-      throw Error("Usage: node scripts/oci-release-evidence.mjs record|verify FILE");
+    if (!["record", "verify", "verify-http"].includes(mode) || !filename) {
+      throw Error("Usage: node scripts/oci-release-evidence.mjs record|verify|verify-http FILE");
     }
     const sha = process.env.IMAGE_TAG;
     const repo = process.env.GITHUB_REPOSITORY;
@@ -106,9 +130,12 @@ if (isDirectInvocation(import.meta.url)) {
       writeFileSync(filename, JSON.stringify(evidence, null, 2) + "\n",
         { flag: "wx", mode: 0o600 });
       process.stdout.write("Recorded publisher OCI digest evidence for " + sha + "\n");
-    } else {
+    } else if (mode === "verify") {
       verifyEvidence(JSON.parse(readFileSync(filename, "utf8")), sha, repo);
       process.stdout.write("PASS: two OCI tags match publisher evidence for " + sha + "\n");
+    } else {
+      await verifyEvidenceHttp(JSON.parse(readFileSync(filename, "utf8")), sha, repo);
+      process.stdout.write("PASS: two OCI tags match publisher evidence for " + sha + " (GHCR API, no Docker)\n");
     }
   } catch (error) {
     process.stderr.write("OCI release evidence FAILED: " + error.message + "\n");
