@@ -28,11 +28,39 @@ export function manifestDigest(ref, inspect = inspectRegistry) {
   return payload.digest;
 }
 
+/**
+ * Parse the ROOT manifest digest from the ordinary human-readable Buildx output.
+ * Unlike '--format {{json .Manifest}}', this is supported by older Buildx CLIs.
+ * Only unindented Name/MediaType/Digest lines before the 'Manifests:' block
+ * count as the registry tag descriptor; platform-specific child digests never do.
+ * Fail closed on missing, duplicate or mismatched headers.
+ */
+export function parseImagetoolsRootDigest(ref, output) {
+  if (typeof output !== "string" || !output || typeof ref !== "string" || !ref) {
+    throw Error("Missing/invalid registry inspect output");
+  }
+  const lines = output.split(/\r?\n/);
+  const end = lines.findIndex(line => /^Manifests:\s*$/.test(line));
+  const header = end === -1 ? lines : lines.slice(0, end);
+  const names = header.filter(line => /^Name:\s+\S+\s*$/.test(line))
+    .map(line => line.replace(/^Name:\s+/, "").trim());
+  const types = header.filter(line => /^MediaType:\s+\S+\s*$/.test(line));
+  const digests = header.filter(line => /^Digest:\s+\S+\s*$/.test(line))
+    .map(line => line.replace(/^Digest:\s+/, "").trim());
+  if (names.length !== 1 || names[0] !== ref || types.length !== 1 ||
+      digests.length !== 1 || !DIGEST.test(digests[0])) {
+    throw Error("Missing/ambiguous root OCI manifest digest for " + ref);
+  }
+  return digests[0];
+}
+
 export function inspectRegistry(ref) {
-  return execFileSync("docker", ["buildx", "imagetools", "inspect", ref,
-    "--format", "{{json .Manifest}}"], {
-      encoding: "utf8", timeout: 45000, maxBuffer: 1024 * 1024
-    });
+  // Never parse a platform submanifest or compute a hash of pretty-printed JSON.
+  // Plain 'inspect' includes the exact root descriptor digest in its header.
+  const stdout = execFileSync("docker", ["buildx", "imagetools", "inspect", ref], {
+    encoding: "utf8", timeout: 45000, maxBuffer: 1024 * 1024
+  });
+  return JSON.stringify({ digest: parseImagetoolsRootDigest(ref, stdout) });
 }
 
 export function recordEvidence(sha, repository, inspect = inspectRegistry) {
