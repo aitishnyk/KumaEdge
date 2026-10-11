@@ -4,6 +4,8 @@
  * successful main-branch *push* publishing workflow run before deployment.
  * This is NOT a registry signature or a guarantee against external tag mutation.
  */
+import { isDirectInvocation } from "./cli-entrypoint.mjs";
+
 const SHA = /^[a-f0-9]{40}$/;
 const REPO = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 
@@ -77,7 +79,7 @@ export async function checkMainRelease(sha, {
   throw Error("No successful main push publisher with unexpired OCI digest evidence for this SHA");
 }
 
-if (process.argv[1] && import.meta.url === new URL("file://" + process.argv[1]).href) {
+if (isDirectInvocation(import.meta.url)) {
   checkMainRelease(process.argv[2]).then(result => {
     // Written into $GITHUB_OUTPUT by the protected deploy workflow.
     process.stdout.write("run_id=" + result.runId + "\n");
