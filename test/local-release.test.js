@@ -14,3 +14,10 @@ test("private local release preflight verifies published GHCR evidence without B
   assert.match(s,/rm -rf -- "\$private"/);
   assert.doesNotMatch(s,/BUNNYNET_API_KEY|terraform apply|container-update-image|curl.*api\.bunny/);
 });
+
+test("local release preflight rejects silent or malformed publisher output",()=>{
+  const s=readFileSync("scripts/check-local-release.sh","utf8");
+  assert.match(s,/Publisher proof CLI returned no run_id/);
+  assert.match(s,/Publisher proof CLI returned an invalid run_id format/);
+  assert.match(s,/run_id=\(\[0-9\]\+\)/);
+});

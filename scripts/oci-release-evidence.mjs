@@ -3,6 +3,7 @@
  * Record/check GHCR OCI digests for BOTH images in the tested publisher run.
  * GitHub artifacts are NOT signed OCI attestations.
  */
+import { isDirectInvocation } from "./cli-entrypoint.mjs";
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 
@@ -64,7 +65,7 @@ export function verifyEvidence(evidence, sha, repository, inspect = inspectRegis
   return true;
 }
 
-if (process.argv[1] && import.meta.url === new URL("file://" + process.argv[1]).href) {
+if (isDirectInvocation(import.meta.url)) {
   const [mode, filename] = process.argv.slice(2);
   try {
     if (!["record", "verify"].includes(mode) || !filename) {

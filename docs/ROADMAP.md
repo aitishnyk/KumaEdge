@@ -98,3 +98,11 @@
 - [x] Document hidden-prompt local install, Terraform state sensitivity and paid confirmation
 - [ ] Hosted GitHub runners/CodeQL fully green (issue #35)
 - [ ] Live paid Bunny HTTPS, alerts, durable restarts and isolated recovery acceptance (issue #19)
+
+## v0.18.1 — macOS symlink-safe local release CLI
+
+- [x] Diagnose Node CLI guard /var -> /private/var realpath mismatch causing silent exit 0
+- [x] Resolve direct CLI entrypoints with filesystem realpath and safe file URL conversion across all four affected scripts
+- [x] Add symlink and import-only regression tests, plus fail-closed empty publisher proof diagnostics
+- [ ] Verify full exact-tree regression and live read-only GHCR release check on operator Mac (no Bunny key)
+- [ ] GitHub-hosted Actions runner allocation and live Bunny deployment remain separate gates
