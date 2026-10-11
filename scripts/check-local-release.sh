@@ -24,7 +24,7 @@ private="$(mktemp -d)"
 chmod 0700 "$private"
 cleanup() {
   rm -rf -- "$private"
-  unset GITHUB_TOKEN GH_TOKEN GHCR_USERNAME
+  unset GITHUB_TOKEN GH_TOKEN GHCR_USERNAME GHCR_READ_TOKEN
 }
 trap cleanup EXIT
 mkdir -p "$private/evidence"

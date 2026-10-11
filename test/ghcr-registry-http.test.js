@@ -100,3 +100,45 @@ test("registry authentication errors do not disclose credential in exception",as
   await assert.rejects(ghcrRootDigest(ref,{request:rejectPrivate,username:"owner",credential:token}),
     err => err instanceof Error && !err.message.includes(token) && /HTTP 403/.test(err.message));
 });
+
+test("403 for both anonymous and authenticated pulls reports visibility/permission, not digest mismatch",async()=>{
+  const never="DO_NOT_EXPOSE_TEST_READ_PACKAGES_TOKEN";
+  const opts=[];
+  async function denyManifest(url, options) {
+    opts.push({url,headers:options.headers});
+    if(new URL(url).pathname==="/token") {
+      return new Response(JSON.stringify({token:"opaque-bearer"}),{status:200});
+    }
+    return new Response("",{status:403});
+  }
+  await assert.rejects(
+    ghcrRootDigest(ref,{request:denyManifest,username:"owner",credential:never}),
+    error=>error instanceof Error &&
+      /read:packages authorization/.test(error.message) &&
+      /NOT an OCI digest mismatch/.test(error.message) &&
+      /HTTP 403/.test(error.message) &&
+      !error.message.includes(never)
+  );
+  assert.equal(opts.length,4);
+  assert.equal(opts[2].headers.Authorization,
+    "Basic "+Buffer.from("owner:"+never).toString("base64"));
+});
+
+test("a separate read-only GHCR PAT can be configured without changing GitHub API auth",async()=>{
+  const {request}=mockRegistry({privateOnly:true});
+  const previous=process.env.GHCR_READ_TOKEN;
+  try {
+    process.env.GHCR_READ_TOKEN="ONLY_FOR_TEST_READ_PACKAGES";
+    const guarded=async(url,options)=>{
+      if(new URL(url).pathname==="/token" && options.headers.Authorization) {
+        assert.equal(options.headers.Authorization,
+          "Basic "+Buffer.from("owner:ONLY_FOR_TEST_READ_PACKAGES").toString("base64"));
+      }
+      return request(url,options);
+    };
+    assert.equal(await ghcrRootDigest(ref,{request:guarded,username:"owner"}),digest);
+  }finally{
+    if(previous===undefined)delete process.env.GHCR_READ_TOKEN;
+    else process.env.GHCR_READ_TOKEN=previous;
+  }
+});
