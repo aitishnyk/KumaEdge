@@ -182,5 +182,5 @@ test("read-only GHCR HTTPS verification checks BOTH primary and backup root dige
     ref.includes("-backup:") ? "sha256:"+"c".repeat(64) : mainDigest),/backup tag digest changed/);
   await assert.rejects(verifyEvidenceHttp({...evidence,images:{main:evidence.images.main}},sha,repo,valid),
     /wrong schema/);
-  await assert.rejects(verifyEvidenceHttp(evidence,"f".repeat(40),repo,valid),/wrong schema|wrong/);
+  await assert.rejects(verifyEvidenceHttp(evidence,"e".repeat(40),repo,valid),/wrong schema|wrong/);
 });
