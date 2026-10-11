@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync, chmodSync, mkdtempSync, rmSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import {
   recordEvidence, verifyEvidence, manifestDigest, parseImagetoolsRootDigest
 } from "../scripts/oci-release-evidence.mjs";
@@ -121,5 +124,47 @@ test("plain Buildx parser refuses child-only, mismatched or ambiguous root diges
   ]) {
     assert.throws(() => parseImagetoolsRootDigest(ref, sample),
       /Missing|ambiguous|invalid/, "Unexpectedly accepted: " + sample);
+  }
+});
+
+test("CLI accepts old Buildx plain inspect and rejects tag retargeting", () => {
+  const dir = mkdtempSync(join(tmpdir(), "kumaedge-plain-buildx-"));
+  const docker = join(dir, "docker");
+  const artifact = join(dir, "evidence.json");
+  try {
+    const script = [
+      "#!/bin/sh",
+      'test "$#" -eq 4 || exit 31',
+      'test "$1" = buildx && test "$2" = imagetools && test "$3" = inspect || exit 32',
+      'case "$4" in',
+      '  *-backup:*) selected="sha256:' + "b".repeat(64) + '";;',
+      '  *) selected="sha256:' + "a".repeat(64) + '";;',
+      'esac',
+      'if test "$KUMAEDGE_TEST_RETARGET" = 1; then',
+      '  case "$4" in *-backup:*) selected="sha256:' + "c".repeat(64) + '";; esac',
+      'fi',
+      "printf 'Name: %s\\nMediaType: application/vnd.oci.image.index.v1+json\\nDigest: %s\\n\\nManifests:\\n  Name: %s@sha256:" + "d".repeat(64) + "\\n' \"$4\" \"$selected\" \"$4\"",
+    ].join("\n") + "\n";
+    writeFileSync(docker, script, {mode: 0o700});
+    chmodSync(docker, 0o700);
+    writeFileSync(artifact, JSON.stringify(recordEvidence(sha, repo, makeInspector())));
+    const env = {
+      ...process.env,
+      PATH: dir + ":" + process.env.PATH,
+      IMAGE_TAG: sha,
+      GITHUB_REPOSITORY: repo,
+      KUMAEDGE_TEST_RETARGET: "0"
+    };
+    const command = ["scripts/oci-release-evidence.mjs", "verify", artifact];
+    const verified = spawnSync(process.execPath, command, {encoding:"utf8", env, timeout:20000});
+    assert.equal(verified.status, 0, verified.stderr);
+    assert.match(verified.stdout, /PASS: two OCI tags match publisher evidence/);
+    const retargeted = spawnSync(process.execPath, command, {
+      encoding:"utf8", env:{...env,KUMAEDGE_TEST_RETARGET:"1"}, timeout:20000
+    });
+    assert.equal(retargeted.status, 1, retargeted.stdout + retargeted.stderr);
+    assert.match(retargeted.stderr, /backup tag digest changed/);
+  } finally {
+    rmSync(dir,{recursive:true,force:true});
   }
 });
