@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
-  recordEvidence, verifyEvidence, manifestDigest, parseImagetoolsRootDigest
+  recordEvidence, verifyEvidence, verifyEvidenceHttp, manifestDigest, parseImagetoolsRootDigest
 } from "../scripts/oci-release-evidence.mjs";
 
 const sha = "f".repeat(40);
@@ -167,4 +167,20 @@ test("CLI accepts old Buildx plain inspect and rejects tag retargeting", () => {
   } finally {
     rmSync(dir,{recursive:true,force:true});
   }
+});
+
+test("read-only GHCR HTTPS verification checks BOTH primary and backup root digests",async()=>{
+  const evidence=recordEvidence(sha,repo,makeInspector());
+  const seen=[];
+  const valid=async ref=>{
+    seen.push(ref);
+    return ref.includes("-backup:") ? backupDigest : mainDigest;
+  };
+  assert.equal(await verifyEvidenceHttp(evidence,sha,repo,valid),true);
+  assert.deepEqual(seen,[evidence.images.main.ref,evidence.images.backup.ref]);
+  await assert.rejects(verifyEvidenceHttp(evidence,sha,repo,async ref=>
+    ref.includes("-backup:") ? "sha256:"+"c".repeat(64) : mainDigest),/backup tag digest changed/);
+  await assert.rejects(verifyEvidenceHttp({...evidence,images:{main:evidence.images.main}},sha,repo,valid),
+    /wrong schema/);
+  await assert.rejects(verifyEvidenceHttp(evidence,"f".repeat(40),repo,valid),/wrong schema|wrong/);
 });
