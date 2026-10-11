@@ -83,7 +83,7 @@ async function fetchRootManifest(repository, sha, bearer, { request }) {
 export async function ghcrRootDigest(ref, {
   request = fetch,
   username = process.env.GHCR_USERNAME || '',
-  credential = process.env.GITHUB_TOKEN || ''
+  credential = process.env.GHCR_READ_TOKEN || process.env.GITHUB_TOKEN || ''
 } = {}) {
   const match = REF.exec(ref || '');
   if (!match) throw registryError('Expected exact lowercase GHCR SHA-tagged image reference');
@@ -99,8 +99,21 @@ export async function ghcrRootDigest(ref, {
       throw registryError('GHCR private package requires GitHub read:packages credentials', error.status);
     }
   }
-  const bearer = await fetchScopedToken(repository, {
-    request, username, credential, authenticated: true
-  });
-  return fetchRootManifest(repository, sha, bearer, { request });
+  try {
+    const bearer = await fetchScopedToken(repository, {
+      request, username, credential, authenticated: true
+    });
+    return await fetchRootManifest(repository, sha, bearer, { request });
+  } catch (error) {
+    if ([401,403].includes(error?.status)) {
+      throw registryError(
+        'GHCR pull denied after anonymous and authenticated checks. ' +
+        'This is a package visibility or read:packages authorization problem, ' +
+        'NOT an OCI digest mismatch. Verify BOTH GHCR packages are public, ' +
+        'or use a local classic PAT with only read:packages as GHCR_READ_TOKEN',
+        error.status
+      );
+    }
+    throw error;
+  }
 }
