@@ -4,6 +4,7 @@
  * Requires publisher evidence artifact and compares both CURRENT GHCR digests.
  * Does NOT call Bunny, create resources, or authenticate to GitHub.
  */
+import { isDirectInvocation } from "./cli-entrypoint.mjs";
 import { readFileSync } from "node:fs";
 import { verifyEvidence, inspectRegistry } from "./oci-release-evidence.mjs";
 
@@ -50,7 +51,7 @@ export function preflightPinnedInstall({
   return { verified: true, mode: backupMode ? "pinned-pair" : "pinned-main", sha };
 }
 
-if (process.argv[1] && import.meta.url === new URL("file://" + process.argv[1]).href) {
+if (isDirectInvocation(import.meta.url)) {
   try {
     const result = preflightPinnedInstall({
       sha: process.env.TF_VAR_image_tag,

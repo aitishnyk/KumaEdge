@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /** Fail closed on registry errors; only an unambiguous missing manifest is absent. */
+import { isDirectInvocation } from "./cli-entrypoint.mjs";
 import { spawnSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
 
@@ -56,7 +57,7 @@ export function guardRelease(repoName, sha, {
   return mode;
 }
 
-if (process.argv[1] && import.meta.url === new URL("file://" + process.argv[1]).href) {
+if (isDirectInvocation(import.meta.url)) {
   try {
     const mode = guardRelease((process.env.GITHUB_REPOSITORY || "").toLowerCase(),
       process.env.GITHUB_SHA);

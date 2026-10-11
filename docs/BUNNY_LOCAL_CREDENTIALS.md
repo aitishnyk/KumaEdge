@@ -44,3 +44,18 @@ On a trusted Mac, after a local checkout, run:
     bash scripts/check-local-release.sh FULL_40_CHARACTER_PUBLISHED_MAIN_SHA
 
 This checks a completed successful official main-branch GHCR publishing run and unexpired digest artifact, downloads that artifact into a private temporary directory, signs into GHCR via the existing GitHub CLI token with an ephemeral Docker config, and compares the exact CURRENT registry manifest digests of both primary and backup images. The temporary token/config/evidence directory is deleted. No Bunny key is read, no paid resources are touched. A missing read:packages authorization fails closed. **Source main HEAD is not necessarily a published image tag.**
+
+**macOS Buildx compatibility (v0.18.1):** The read-only release verifier uses plain `docker buildx imagetools inspect IMAGE` and extracts only the root manifest digest before platform details. It deliberately avoids the `--format` flag rejected by some installed Docker versions; missing or ambiguous root digests are fatal. Publisher evidence and BOTH current registry digest checks remain mandatory.
+
+**v0.18.1 — Docker-independent local GHCR verification:** `scripts/check-local-release.sh` now uses the OCI Distribution API at fixed `https://ghcr.io` endpoints; it requires GitHub CLI and Node.js but does not require Docker/Buildx. It requests read-only repository `pull` tokens, preferring anonymous access for public images and using local GitHub CLI credentials only if the package is private. It verifies SHA-256 of the raw root manifest bytes against `Docker-Content-Digest`, then compares BOTH current root digests to the official unexpired publisher evidence. No redirect or Bunny account key is used. A missing/mismatched digest or authorization failure is NOT treated as success.
+
+
+## GHCR HTTP 403 — different from Bunny credentials
+
+An HTTP 403 from `scripts/check-local-release.sh` after the official publisher artifact is downloaded means **the registry refused access to the image manifest**; it does **NOT** prove an OCI digest mismatch. Publishing images from a public repository does NOT automatically make the GHCR packages public: newly created packages are private by default.
+
+On GitHub, open your own profile → **Packages**, inspect **both** `kumaedge` and `kumaedge-backup` → **Package settings** → package Visibility. If the intent is to offer public MIT open-source images, the owner may explicitly choose **Public** for EACH image after reviewing what the images contain. **Important: changing a package to public is irreversible on GitHub.** This is a manual account security/visibility decision; source code never changes that setting.
+
+If the images must remain **Private**, create a *separate* GitHub personal access token **(classic)** with `read:packages` only, keep it in your own private password manager or Mac Keychain, and pass it to the local release checker through optional `GHCR_READ_TOKEN`. Type it only at a shell hidden prompt or load it from a trusted credential helper; do not paste it into your command history, repository, Issues or chat. The token is transmitted only to fixed HTTPS `ghcr.io/token` when anonymous pull fails. `GHCR_READ_TOKEN` is **NOT the Bunny account key**. Unsetting it in the shell after the check prevents accidentally reusing it for other programs.
+
+Local read-only package verification does not grant permission to create Bunny resources or establish production readiness.

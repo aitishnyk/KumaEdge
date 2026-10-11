@@ -98,3 +98,33 @@
 - [x] Document hidden-prompt local install, Terraform state sensitivity and paid confirmation
 - [ ] Hosted GitHub runners/CodeQL fully green (issue #35)
 - [ ] Live paid Bunny HTTPS, alerts, durable restarts and isolated recovery acceptance (issue #19)
+
+## v0.18.1 — macOS symlink-safe local release CLI
+
+- [x] Diagnose Node CLI guard /var -> /private/var realpath mismatch causing silent exit 0
+- [x] Resolve direct CLI entrypoints with filesystem realpath and safe file URL conversion across all four affected scripts
+- [x] Add symlink and import-only regression tests, plus fail-closed empty publisher proof diagnostics
+- [ ] Re-run exact-tree regression and live GHCR release check on operator Mac (no Bunny key); initial macOS run 12/12 PASS but OCI manifest command rejected --format
+- [ ] GitHub-hosted Actions runner allocation and live Bunny deployment remain separate gates
+
+### v0.18.1 portability follow-up — OCI digest inspection
+- [x] Drop unsupported `--format` dependence in `docker buildx imagetools inspect` on operator macOS
+- [x] Parse unindented root `Name`, `MediaType`, `Digest` before any platform manifest list; reject missing, duplicate or mismatched values
+- [x] Add regression for multi-platform child digest injection, malformed root and old Buildx CLI options
+- [ ] Confirm actual current GHCR main/backup root digest equality with publisher evidence on Mac
+
+### v0.18.1 GHCR compatibility — missing macOS Buildx plugin
+- [x] Remove Docker and Buildx prerequisite from local publisher/OCI verifier; use direct read-only GHCR Distribution API
+- [x] Verify root manifest SHA-256 of original network bytes against `Docker-Content-Digest` before publisher evidence comparison
+- [x] Prefer anonymous repository pull token, fallback to GitHub CLI read:packages only for authorized private GHCR images, no Bunny key
+- [x] Add mocked authentication/registry/malformed digest and dual-image HTTP verification regression tests
+- [ ] Operator Mac: prove exact new PR head full suite and real publisher/registry root digest checks
+- [ ] Hosted GitHub CI runner/CodeQL and live Bunny production still NOT_RUN/NOT_CLAIMED
+
+
+### v0.18.1 GHCR package visibility/access gate
+- [x] Distinguish HTTP 401/403 after anonymous and authenticated pull from an actual OCI manifest digest mismatch
+- [x] Support optional local `GHCR_READ_TOKEN` (PAT classic with `read:packages` only), independent of existing GitHub API token
+- [x] Security tests: no raw token in denial diagnostics, no Bunny key, and fallback only to fixed GitHub Container Registry origin
+- [ ] Owner to inspect the visibility of BOTH GHCR packages: they are independent from public repository visibility
+- [ ] Operator Mac to verify the *actual* registry manifests after permissions/visibility are confirmed
