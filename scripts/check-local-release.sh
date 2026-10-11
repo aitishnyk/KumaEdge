@@ -36,7 +36,14 @@ export GH_TOKEN="$GITHUB_TOKEN"
 export GITHUB_REPOSITORY="$repo"
 echo "Checking official successful main SHA publisher..."
 response="$(node "$root/scripts/verify-release-provenance.mjs" "$sha")" || exit 1
-[[ "$response" =~ ^run_id=([0-9]+)$ ]] || { echo "Invalid publisher proof output" >&2; exit 1; }
+if [[ -z "$response" ]]; then
+  echo "Publisher proof CLI returned no run_id (entrypoint produced no output); refuse release." >&2
+  exit 1
+fi
+[[ "$response" =~ ^run_id=([0-9]+)$ ]] || {
+  echo "Publisher proof CLI returned an invalid run_id format; refuse release." >&2
+  exit 1
+}
 run_id="${BASH_REMATCH[1]}"
 echo "Fetching official image digest evidence from run $run_id..."
 gh run download "$run_id" --repo "$repo" --name "kumaedge-oci-digests-$sha" --dir "$private/evidence" >/dev/null
