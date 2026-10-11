@@ -20,7 +20,7 @@ jobs:
       KUMAEDGE_STORAGE_ACCESS_KEY: ${{ secrets.KUMAEDGE_STORAGE_ACCESS_KEY }}
       MAX_AGE_HOURS: ${{ vars.KUMAEDGE_BACKUP_MAX_AGE_HOURS }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Read-only backup freshness check (no Bunny writes)
         shell: bash
         run: |

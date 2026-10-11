@@ -8,7 +8,7 @@ jobs:
     if: ${{ github.repository == 'aitishnyk/KumaEdge' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Deploy standalone script to Bunny
         uses: BunnyWay/actions/deploy-script@4b22fe0b319386b3913117daf97729409dd0a6ef
         with:
