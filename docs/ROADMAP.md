@@ -120,3 +120,11 @@
 - [x] Add mocked authentication/registry/malformed digest and dual-image HTTP verification regression tests
 - [ ] Operator Mac: prove exact new PR head full suite and real publisher/registry root digest checks
 - [ ] Hosted GitHub CI runner/CodeQL and live Bunny production still NOT_RUN/NOT_CLAIMED
+
+
+### v0.18.1 GHCR package visibility/access gate
+- [x] Distinguish HTTP 401/403 after anonymous and authenticated pull from an actual OCI manifest digest mismatch
+- [x] Support optional local `GHCR_READ_TOKEN` (PAT classic with `read:packages` only), independent of existing GitHub API token
+- [x] Security tests: no raw token in denial diagnostics, no Bunny key, and fallback only to fixed GitHub Container Registry origin
+- [ ] Owner to inspect the visibility of BOTH GHCR packages: they are independent from public repository visibility
+- [ ] Operator Mac to verify the *actual* registry manifests after permissions/visibility are confirmed
