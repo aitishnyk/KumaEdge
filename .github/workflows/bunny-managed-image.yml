@@ -111,7 +111,7 @@ jobs:
         run: node scripts/oci-release-evidence.mjs record "$RUNNER_TEMP/evidence.json"
       - name: Upload publisher digest evidence
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.image_guard.outputs.publish == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kumaedge-oci-digests-${{ github.sha }}
           path: ${{ runner.temp }}/evidence.json
