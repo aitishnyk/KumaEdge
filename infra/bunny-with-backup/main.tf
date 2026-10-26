@@ -108,15 +108,11 @@ resource "bunnynet_compute_container_app" "kumaedge" {
     image_pull_policy = "IfNotPresent"
     command           = "node"
     arguments         = "/opt/kumaedge/front-door.cjs"
-    env {
-      name  = "KUMAEDGE_FRONT_DOOR_PASSWORD"
-      value = var.front_door_password
-    }
     dynamic "env" {
-      for_each = nonsensitive(toset(keys(merge({ KUMAEDGE_DEMO_ENABLED = "false" }, var.demo_environment))))
+      for_each = nonsensitive(toset(keys(merge({ KUMAEDGE_DEMO_ENABLED = "false", KUMAEDGE_FRONT_DOOR_PASSWORD = var.front_door_password }, var.demo_environment))))
       content {
         name  = env.value
-        value = merge({ KUMAEDGE_DEMO_ENABLED = "false" }, var.demo_environment)[env.value]
+        value = merge({ KUMAEDGE_DEMO_ENABLED = "false", KUMAEDGE_FRONT_DOOR_PASSWORD = var.front_door_password }, var.demo_environment)[env.value]
       }
     }
     endpoint {

@@ -1,93 +1,55 @@
-# Live acceptance — v0.20.0 candidate
+# KumaEdge v0.20.0 live acceptance
 
-Overall: **SOURCE CANDIDATE; live update pending exact local owner approval**.
+The owner approved source `a31511486cdcf9d6f59f70fa7b00ccfc2d5a89dc` in the trusted
+local terminal. Bunny accepted the existing-app update and both running containers
+use main digest `sha256:658c794a909a955a2cbb9adafe4c22a22ce7bf48b2277bb70692967e21d25e19`.
+The provider returned an inconsistent-result error because its API sorts environment
+variables alphabetically. A private state backup and refresh-only reconciliation
+preserved state lineage; with the corrected sorted configuration both resources
+plan no-op. No second cloud update was performed to recover state.
 
-The owner explicitly waived retention/export of the old disposable test data and
-authorized a one-time contents reset of existing volume
-`117a1d40-18e4-4041-b8f7-57e2603cd32a` if necessary. The app, volume itself,
-endpoint, infrastructure state and infrastructure credentials must remain intact.
-This supersedes the earlier old-data-export blocker below. Existing Admin/TOTP
-were owner-confirmed configured; the reviewed disposable reinitialization creates
-new independent operator credentials/factor in the local macOS Keychain via real
-Kuma setup/TOTP APIs, without bypassing authentication. Old-data backup is recorded
-OWNER_WAIVED_DISPOSABLE_DATA, never PASS. New actual live-data backup/restore remains
-an acceptance test after deployment.
+Existing app `E2quWe26NmOfL7q`, Pull Zone `6868097`, two containers, one DE replica,
+5GB volume `117a1d40-18e4-4041-b8f7-57e2603cd32a`, volume instance
+`db5c6016-d098-4851-9253-cb2eb581357c` and HTTPS hostname remain unchanged.
+New paid resources: **0**. State and infrastructure credentials stay private.
 
-The optional same-container engine supervisor supports a clean-writer full-volume
-age export through the existing gateway, requiring owner Basic plus a separate
-operations capability. It adds no container/volume/endpoint. A fixed startup reset
-nonce is bound to this app and an on-volume completion marker prevents repetition.
-Local tests exercise real setup/TOTP/monitoring, one-shot reset, restart preservation,
-clean-writer encrypted export and independent local restored Kuma. No live update
-or reset has occurred at source freeze.
-The v0.20 image has not yet been applied. The existing v0.19 engine remains active.
-Use the final execution report for the exact candidate SHA/digests and local tests.
+The owner explicitly waived retention of the old disposable test data and authorized
+one contents reset. The old-data gate is `OWNER_WAIVED_DISPOSABLE_DATA`, never PASS.
+The single-use authorization is consumed. The fixed reset nonce and completion
+marker must be preserved; do not rotate the nonce or delete the marker. New owner
+credentials/TOTP were enrolled through genuine Kuma APIs and stored in local macOS
+Keychain. The existing gateway credential was preserved.
 
-Read-only audit found app `E2quWe26NmOfL7q`, one DE pod `gFbzJPmVhSIYqw`, two
-containers (kumaedge:3001, owner-gateway:3002), one existing CDN endpoint and Pull
-Zone `6868097`. Volume `117a1d40-18e4-4041-b8f7-57e2603cd32a` is 5 GB, instance
-`db5c6016-d098-4851-9253-cb2eb581357c`, attached in DE. Only the engine template
-mounts it at /app/data. No new resources were requested or created.
+## Observed live results
 
-The applied private state (serial 3) was copied and SHA-256 verified with a private
-backup. Terraform now uses an explicit local backend under
-`.local-deployments/E2quWe26NmOfL7q/terraform.tfstate`. A baseline refresh/plan
-reported no-op for both existing resources. Legacy source-SHA state must never be
-used for another apply. Owner gateway credentials were preserved byte-for-byte.
+- OWNER gateway, original Kuma admin, real TOTP, invalid-factor rejection,
+  logout/relogin: PASS.
+- Real HTTPS/TCP monitors against the owned hostname and controlled local DOWN/UP,
+  with persisted history: PASS. Heartbeat counts grew with operator clients closed.
+- Public independent DEMO login/data, allowlist, owner/API/WebSocket denial,
+  tamper/CSRF rejection, logout and owner transport reconnect: PASS.
+- Browser DEMO login initially exposed a Referrer-Policy bug: `no-referrer` makes
+  HTML form navigation send `Origin: null`, correctly rejected by CSRF checks.
+  The existing CDN rule now sets `same-origin`, preserving strict origin checking;
+  actual browser login and real dashboard then passed. Gateway source is corrected
+  to the same policy. See the [Fetch algorithm](https://fetch.spec.whatwg.org/#append-a-request-origin-header).
+- Private/no-store, no Age/HIT, CDN BYPASS for tested GETs: PASS. Bunny omits the
+  CDN-Cache diagnostic on POST 303; the harness accepts only absence/BYPASS there,
+  still requires no-store and no Age, and retains strict BYPASS for GET responses.
+- Actual Bunny clean-writer full-volume age export: PASS. SHA-256 verified.
+  Independent local restore, network=none, real compatible Kuma boot, SQLite
+  integrity and original private configuration/history/assets: PASS.
+- Live directories carry setgid modes. Archive verification now compares the full
+  declared permission metadata, while restore deliberately strips privilege bits.
+  File content digests were correct; the previous failure was a verifier mode
+  mismatch. Regression tests cover special modes and permission tampering.
 
-CDN snapshot/diff was saved privately before modification. Only the existing zone
-was updated: SmartCache off, edge/browser TTL zero, errors uncached, cookies kept,
-WebSockets retained, one all-routes policy for cache bypass/no-store, HTTPS and
-short HSTS. The final API state and original rollback snapshot are private.
+Same-volume application restart and post-restart session/data checks are still
+pending at this source freeze. External delivery receipts are NOT_VERIFIED because
+no authorized notification destination is configured. Bunny-to-Bunny restore is
+NOT_RUN: another paid app/volume is forbidden. Mobile-browser layout and the full
+public one-hour session-expiry duration are NOT_RUN; local TTL enforcement passes.
+Use the final execution report for the final candidate SHA, OCI digests and gates.
 
-| Live gate | Evidence / status |
-|---|---|
-| Gateway anonymous /setup denied | PASS, external 401 |
-| Gateway owner /dashboard | PASS, external 200 with existing private credential |
-| Kuma initial setup | Existing admin: needSetup=false; no owner admin session used |
-| OWNER admin/TOTP/logout/relogin/expiry | NOT_VERIFIED; protected owner interaction required |
-| HTTPS certificate and HTTP redirect | PASS, curl TLS validation and HTTP 301 to same HTTPS host |
-| Polling, WebSocket and independent Kuma auth | PASS against current live engine |
-| Private no-store / shared cache | PASS on tested current owner/anonymous routes; CDN BYPASS |
-| Complete CDN_PHASE_PASS including demo sessions | NOT_VERIFIED until v0.20 live demo tests |
-| Public demo login / isolation | NOT_RUN; candidate not deployed |
-| Existing SQLite schema/migrations/content | NOT_VERIFIED; no database export access |
-| Cloud monitors, browser-closed interval, restart persistence | NOT_RUN; requires owner session and agreed restart |
-| External DOWN/UP receipts | NOT_VERIFIED; no authorized external destination/credential provided |
-| BUNNY_SOURCE_FULL_BACKUP | NOT_RUN; full /app/data export unavailable through documented public API |
-| LOCAL_ISOLATED_RESTORE of Bunny data | NOT_RUN; depends on full Bunny-source backup |
-| BUNNY_TO_BUNNY_RESTORE | NOT_RUN; no additional paid app/volume authorized |
-
-The public Magic Containers OpenAPI exposes volume metadata/resize/delete/detach,
-app configuration and restart; it does not expose file download, shell exec or
-volume backup/export. Do not infer an undocumented endpoint, expose a shell/file
-proxy, detach/delete data, use private SQLite as a demo adapter, or create another
-paid service to work around this boundary. A supported secure full-volume export
-from the owner/platform is required before app update. A Kuma settings export or
-local synthetic DR archive is not a full Bunny-source backup.
-
-## Historical pre-waiver owner steps (superseded for OLD disposable data)
-
-1. Confirm the existing Kuma admin and enable TOTP in the protected HTTPS owner UI.
-   Run `python3 scripts/local/owner-live-check.py` directly in a trusted terminal;
-   it hides password/TOTP and reports only gate results. No secrets go in chat.
-2. Obtain a supported full /app/data export from this exact volume with a
-   consistent SQLite snapshot and all assets/configuration. Keep it private;
-   encrypt using the existing age full-volume tooling, key stored separately.
-   Verify integrity and boot an isolated local Docker restore with the compatible
-   image. Record actual user/monitor/history/status-page/asset preservation.
-3. Configure demo privately using `scripts/local/configure-demo.py` and identify
-   the explicitly public status-page/monitor allowlist.
-4. Supply an authorized external notification channel locally; use actual provider
-   receipts for both controlled DOWN and recovery.
-5. Regenerate the image/config-only plan. Check paired registry evidence, current
-   resource IDs, backup receipt, allowed changed fields and exact private diff.
-   The apply script requires the human's exact local approval string. Never paste
-   or type approval on behalf of the owner. No create/delete/replace, volume,
-   endpoint, container count, region or owner-password change is accepted.
-6. After authorized apply, execute complete public owner/demo/adversarial/mobile
-   tests and agreed restart/persistence interval; re-audit IDs and billing inventory.
-
-Bunny volumes remain node-local without automatic replication or platform backup.
-A pod restart is not proof of hardware-loss recovery. Preserve a verified encrypted
-Bunny-source archive before any intentional application restart or image update.
+The paired backup OCI image is a release artifact, not a third cloud container.
+No GitHub Actions were used. Repository Actions remain disabled.

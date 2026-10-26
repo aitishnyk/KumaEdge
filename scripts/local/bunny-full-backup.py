@@ -2,12 +2,12 @@
 """Export actual full volume through owner+capability gateway; encrypted bytes only."""
 import datetime,hashlib,json,os,pathlib,sqlite3,subprocess,tempfile,urllib.parse
 from private_store import credential
+from deployed_release import deployed_release
 os.umask(0o077)
 r=pathlib.Path(__file__).resolve().parents[2];d=r/'.local-deployments/E2quWe26NmOfL7q';backups=d/'backups';backups.mkdir(exist_ok=True);backups.chmod(0o700)
 app=json.loads(subprocess.check_output(['bunny','api','GET','/mc/apps/E2quWe26NmOfL7q'],text=True));volumes=json.loads(subprocess.check_output(['bunny','api','GET','/mc/apps/E2quWe26NmOfL7q/volumes'],text=True))
 if len(volumes['items'])!=1 or volumes['items'][0]['id']!='117a1d40-18e4-4041-b8f7-57e2603cd32a':raise SystemExit('Exact existing volume identity required')
-sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=r,text=True).strip()
-if any(c['imageTag']!=sha for c in app['containerTemplates']):raise SystemExit('Exact candidate image must be deployed')
+sha=deployed_release(r,app)
 archive=backups/(datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-full-volume.age')
 password=(d/'owner-gateway-password.private').read_text();token=credential('__ops')
 import base64

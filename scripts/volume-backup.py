@@ -159,7 +159,7 @@ def unpack(stream, stage=None):
                 raise UnsafeArchive("Too many archive entries")
             path = stage / rel if stage is not None else None
             if member.isdir():
-                dirs.append([rel, member.mode & 0o777])
+                dirs.append([rel, stat.S_IMODE(member.mode)])
                 if path is not None:
                     path.mkdir(parents=True, exist_ok=True)
                     directory_modes.append((path, member.mode & 0o777))
@@ -189,7 +189,7 @@ def unpack(stream, stage=None):
             finally:
                 if output is not None:
                     output.close()
-            files.append([rel, member.size, digest.hexdigest(), member.mode & 0o777])
+            files.append([rel, member.size, digest.hexdigest(), stat.S_IMODE(member.mode)])
             if path is not None:
                 os.chmod(path, member.mode & 0o777)
     if not isinstance(declared, dict) or declared.get("schema") != SCHEMA:

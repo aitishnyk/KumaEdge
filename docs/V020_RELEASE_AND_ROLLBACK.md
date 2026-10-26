@@ -60,3 +60,18 @@ explicit acceptance monitors/public labels, checks public demo isolation and
 WebSocket reconnect, waits with operator clients closed, exports/locally restores
 the full actual Bunny volume, and checks an agreed same-volume app restart.
 External notification receipts remain NOT_VERIFIED without an authorized channel.
+
+## Live findings and provider recovery
+
+The owner-approved a315114 update was accepted by Bunny, despite the provider's
+inconsistent-result error from reordering gateway environment variables. Keep a
+private copy of the resulting state. Use ONE sorted dynamic environment block
+for both the owner credential and demo keys; then use refresh-only to reconcile
+state and require a normal no-op plan. Do not reapply a stale saved plan or reset
+application data again. Preserve the existing nonce and on-volume completion marker.
+
+Operator acceptance tools resolve the actual deployed SHA/digest against local
+publisher evidence. A later documentation or infrastructure commit does not imply
+that its SHA is deployed. Missing, mixed or mismatched release evidence fails closed.
+Bunny's POST 303 responses may omit CDN-Cache; no-store/no Age and uncached GET
+session-isolation checks remain required.

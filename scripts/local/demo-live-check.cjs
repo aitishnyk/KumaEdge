@@ -3,7 +3,7 @@
 const {io}=require('socket.io-client'),assert=require('assert/strict'),fs=require('fs');
 const base='https://mc-b4n2u1709h.bunny.run',origin=base;
 const owner={authorization:'Basic '+Buffer.from('owner:'+process.env.KUMAEDGE_FRONT_DOOR_PASSWORD).toString('base64')};
-const check=r=>{assert.match(r.headers.get('cache-control')||'',/private.*no-store/);assert.equal(r.headers.get('cdn-cache'),'BYPASS');assert.ok(!Number(r.headers.get('age')||0));};
+const check=r=>{assert.match(r.headers.get('cache-control')||'',/private.*no-store/);if(r.status===303)assert.ok([null,'BYPASS'].includes(r.headers.get('cdn-cache')));else assert.equal(r.headers.get('cdn-cache'),'BYPASS');assert.ok(!Number(r.headers.get('age')||0));};
 const fetcher=(p,o={})=>fetch(base+p,{redirect:'manual',...o});
 async function main(){
  let r=await fetcher('/setup');assert.equal(r.status,401);check(r);

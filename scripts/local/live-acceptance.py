@@ -2,8 +2,9 @@
 """Post-approval real Bunny provisioning, demo, backup, closed-client interval/restart."""
 import json,os,pathlib,subprocess,sys,tempfile,time
 from private_store import credential
+from deployed_release import deployed_release
 os.umask(0o077)
-r=pathlib.Path(__file__).resolve().parents[2];d=r/'.local-deployments/E2quWe26NmOfL7q';sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=r,text=True).strip();image='kumaedge-local:'+sha
+r=pathlib.Path(__file__).resolve().parents[2];d=r/'.local-deployments/E2quWe26NmOfL7q';app=json.loads(subprocess.check_output(['bunny','api','GET','/mc/apps/E2quWe26NmOfL7q'],text=True));sha=deployed_release(r,app);image='kumaedge-local:'+sha
 if subprocess.check_output(['git','status','--porcelain'],cwd=r,text=True).strip():raise SystemExit('Exact clean source required')
 def run(script,*args):subprocess.run(['python3',str(r/'scripts/local'/script),*args],cwd=r,check=True)
 def ready():

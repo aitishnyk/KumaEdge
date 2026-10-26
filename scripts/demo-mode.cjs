@@ -2,7 +2,7 @@
 'use strict';
 const crypto=require('crypto'),fs=require('fs'),path=require('path');
 const COOKIE='__Host-kumaedge_demo',PRE='__Host-kumaedge_demo_login';
-const safeHeaders={'cache-control':'private, no-store, max-age=0','pragma':'no-cache','expires':'0','x-content-type-options':'nosniff','referrer-policy':'no-referrer','x-frame-options':'DENY','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"};
+const safeHeaders={'cache-control':'private, no-store, max-age=0','pragma':'no-cache','expires':'0','x-content-type-options':'nosniff','referrer-policy':'same-origin','x-frame-options':'DENY','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function hashPassword(password,salt=crypto.randomBytes(16).toString('hex')){
  if(!/^[a-f0-9]{32}$/.test(salt)||Buffer.byteLength(password)<16||Buffer.byteLength(password)>1024)throw Error('Password must be 16–1024 bytes');

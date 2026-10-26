@@ -2,10 +2,11 @@
 """Run only after the exact approved image/reset plan is applied to existing app."""
 import json,os,pathlib,secrets,subprocess,sys,tempfile
 from private_store import credential
+from deployed_release import deployed_release
 os.umask(0o077)
-r=pathlib.Path(__file__).resolve().parents[2];d=r/'.local-deployments/E2quWe26NmOfL7q';sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=r,text=True).strip()
+r=pathlib.Path(__file__).resolve().parents[2];d=r/'.local-deployments/E2quWe26NmOfL7q'
 app=json.loads(subprocess.check_output(['bunny','api','GET','/mc/apps/E2quWe26NmOfL7q'],text=True))
-if any(c['imageTag']!=sha for c in app['containerTemplates']):raise SystemExit('Exact reviewed candidate must be deployed before live provisioning')
+sha=deployed_release(r,app)
 if {c['name'] for c in app['containerTemplates']}!={'kumaedge','owner-gateway'}:raise SystemExit('Unexpected app inventory')
 try:password=credential('__owner-admin')
 except RuntimeError:

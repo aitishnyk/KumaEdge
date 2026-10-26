@@ -37,6 +37,30 @@ class VolumeBackupTests(unittest.TestCase):
         self.assertEqual((target / "kuma.db").read_bytes(), b"db content")
         self.assertEqual((target / "uploads" / "test.bin").read_bytes(), b"image content")
 
+    def test_setgid_volume_manifest_verifies_without_restoring_special_bits(self):
+        os.chmod(self.volume / "uploads", 0o2755)
+        os.chmod(self.volume / "uploads" / "test.bin", 0o4755)
+        content = self.archive()
+        target = self.root / "restore"
+        target.mkdir()
+        self.assertEqual(module.unpack(io.BytesIO(content))["verified_files"], 2)
+        module.unpack(io.BytesIO(content), target)
+        self.assertEqual((target / "uploads").stat().st_mode & 0o7777, 0o755)
+        self.assertEqual((target / "uploads" / "test.bin").stat().st_mode & 0o7777, 0o755)
+
+    def test_manifest_permission_tampering_rejected(self):
+        original = self.archive()
+        mutated = io.BytesIO()
+        with tarfile.open(fileobj=io.BytesIO(original), mode="r:gz") as source:
+            with tarfile.open(fileobj=mutated, mode="w:gz") as output:
+                for entry in source:
+                    content = source.extractfile(entry).read() if entry.isfile() else None
+                    if entry.name == "data/uploads":
+                        entry.mode ^= 0o2000
+                    output.addfile(entry, io.BytesIO(content) if content is not None else None)
+        with self.assertRaises(module.UnsafeArchive):
+            module.unpack(io.BytesIO(mutated.getvalue()))
+
     def test_source_symlink_and_hardlink_refused(self):
         link = self.volume / "badlink"
         link.symlink_to(self.root)
