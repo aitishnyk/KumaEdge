@@ -41,7 +41,7 @@ async function main(){
  }
  const existing=await new Promise(async(resolve,reject)=>{s.once('monitorList',resolve);try{await ok('getMonitorList');}catch(e){reject(e);}});
  const defaults={interval:60,retryInterval:60,resendInterval:0,maxretries:0,active:true,accepted_statuscodes:['200-299'],kafkaProducerBrokers:[],kafkaProducerSaslOptions:{},rabbitmqNodes:[],conditions:[],notificationIDList:{},timeout:15,method:'GET',upsideDown:false,expiryNotification:false,ignoreTls:false};
- const definitions=[{name:'KumaEdge HTTPS acceptance',type:'http',url:'https://example.com',expiryNotification:true},{name:'KumaEdge TCP acceptance',type:'port',hostname:'example.com',port:443,smtpSecurity:'nostarttls'},{name:'KumaEdge controlled acceptance',type:'http',url:'http://127.0.0.1:3003/target',interval:20,retryInterval:20,timeout:5}];
+ const definitions=[{name:'KumaEdge HTTPS acceptance',type:'http',url:'https://mc-b4n2u1709h.bunny.run/healthz',expiryNotification:true},{name:'KumaEdge TCP acceptance',type:'port',hostname:'mc-b4n2u1709h.bunny.run',port:443,smtpSecurity:'nostarttls'},{name:'KumaEdge controlled acceptance',type:'http',url:'http://127.0.0.1:3003/target',interval:20,retryInterval:20,timeout:5}];
  const ids=[];for(const definition of definitions){const found=Object.values(existing).find(m=>m.name===definition.name);ids.push(found?found.id:(await ok('add',{...defaults,...definition})).monitorID);}
  assert.deepEqual(ids,[1,2,3],'Fresh dataset IDs differ from reviewed public allowlist');
  const beat=async(id,status)=>{for(let n=0;n<120;n++){const r=await ok('getMonitorBeats',id,24);if(r.data.at(-1)?.status===status)return r.data;await sleep(1000);}throw Error('Heartbeat acceptance timeout');};
