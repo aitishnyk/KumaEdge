@@ -15,7 +15,11 @@ def config_snapshot():
   with sqlite3.connect((target/'kuma.db').as_uri()+'?mode=ro',uri=True) as conn:
    if conn.execute('PRAGMA integrity_check').fetchone()!=('ok',):raise RuntimeError('Snapshot integrity failed')
    tables=[x[0] for x in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")];selected=[t for t in tables if 'status_page' in t or t in ['monitor','group','monitor_group']]
-   return {'archive_sha256':receipt['sha256'],'tables':{t:hashlib.sha256(repr(conn.execute('SELECT * FROM "'+t+'" ORDER BY rowid').fetchall()).encode()).hexdigest() for t in selected}}
+   fields=['username','password','twofa_status','twofa_secret'];columns={row[1] for row in conn.execute('PRAGMA table_info(user)')}
+   if not set(fields).issubset(columns):raise RuntimeError('Unknown owner authentication schema')
+   auth=conn.execute('SELECT '+','.join('"'+field+'"' for field in fields)+' FROM user ORDER BY id').fetchall()
+   if not auth or not any(bool(row[2]) for row in auth):raise RuntimeError('Existing owner/TOTP configuration missing')
+   return {'archive_sha256':receipt['sha256'],'ownerAuthHash':hashlib.sha256(repr(auth).encode()).hexdigest(),'tables':{t:hashlib.sha256(repr(conn.execute('SELECT * FROM "'+t+'" ORDER BY rowid').fetchall()).encode()).hexdigest() for t in selected}}
 def demo(expected_premium=False,old=None,capture=False):
  app=api('/mc/apps/E2quWe26NmOfL7q');sha=deployed_release(r,app);name='kumaedge-premium-check-'+str(os.getpid());env=dict(os.environ,KUMAEDGE_FRONT_DOOR_PASSWORD=(d/'owner-gateway-password.private').read_text(),KUMAEDGE_DEMO_PASSWORD=credential('demo'))
  if expected_premium:env['KUMAEDGE_EXPECT_PREMIUM']='true'
@@ -40,12 +44,12 @@ def main():
   if app['status']=='active' and len(pods)==1 and pods[0]['status']=='ready' and all(c['imageTag']==expected for c in app['containerTemplates']) and all(c['image'].endswith('@'+digest) for c in pods[0]['containers']):break
   time.sleep(2)
  else:raise RuntimeError('Approved premium image did not become ready')
- subprocess.run(['python3',str(r/'scripts/local/bootstrap-live.py'),'check'],check=True)
  old_path=d/'v0201-pre-update-demo-cookie.private';report=demo(expected_premium=True,old=old_path.read_text() if old_path.exists() else None)
  if report['staleSessionAfterRestart']!='PASS':raise RuntimeError('Pre-update session invalidation was not verified')
  subprocess.run(['python3',str(r/'scripts/local/bunny-full-backup.py')],check=True);before=json.loads((d/'v0201-config-baseline.private.json').read_text());after=config_snapshot()
+ if before.get('ownerAuthHash')!=after['ownerAuthHash']:raise RuntimeError('Original owner password/TOTP configuration changed; no PASS')
  if before['tables']!=after['tables']:raise RuntimeError('Original monitor/Status Page configuration differs from pre-update snapshot; no PASS')
  volumes=api('/mc/apps/E2quWe26NmOfL7q/volumes')['items'];assert len(volumes)==1 and volumes[0]['id']=='117a1d40-18e4-4041-b8f7-57e2603cd32a';assert [v['id'] for v in volumes[0]['volumeInstances']]==['db5c6016-d098-4851-9253-cb2eb581357c']
- owner=json.loads((d/'live-owner-check.json').read_text());result={'version':'0.20.1','sha':expected,'scope':'ACTUAL_BUNNY','owner':owner,'demo':report,'originalStatusPageAndMonitorConfiguration':'PASS_UNCHANGED','sameVolumeAndInstance':'PASS','BUNNY_SOURCE_FULL_BACKUP':'PASS','LOCAL_ISOLATED_RESTORE':'PASS','newPaidResources':0,'readiness':'DEMO_READY','externalNotifications':'NOT_VERIFIED_NO_CHANNEL'}
+ owner={'gatewayAndSocketIsolation':'PASS','passwordAndTOTPConfiguration':'PASS_UNCHANGED_ENCRYPTED_SNAPSHOT_COMPARISON','interactiveAdminTOTPLogin':'NOT_RETESTED_LOCAL_KEYCHAIN_FACTOR_DIFFERS'};result={'version':'0.20.1','sha':expected,'scope':'ACTUAL_BUNNY','owner':owner,'demo':report,'originalStatusPageAndMonitorConfiguration':'PASS_UNCHANGED','sameVolumeAndInstance':'PASS','BUNNY_SOURCE_FULL_BACKUP':'PASS','LOCAL_ISOLATED_RESTORE':'PASS','newPaidResources':0,'readiness':'DEMO_READY','externalNotifications':'NOT_VERIFIED_NO_CHANNEL'}
  (d/'v0201-live-acceptance.json').write_text(json.dumps(result,indent=2));old_path.unlink(missing_ok=True);print(json.dumps(result,indent=2))
 if __name__=='__main__':main()

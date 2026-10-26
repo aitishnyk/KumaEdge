@@ -59,10 +59,13 @@ reset data, rotate credentials, change the reset nonce, or alter endpoint/volume
 `premium-live-acceptance.py before` privately captures a configuration fingerprint
 from the verified full backup and an existing DEMO session. After the human's exact
 local approval, run `premium-live-acceptance.py` with the reviewed runtime SHA.
-It verifies actual pod digests, performs only read-only Kuma admin checks, DEMO/
+It verifies actual pod digests, performs OWNER gateway/socket isolation and DEMO/
 affiliate/HTTPS/WS/OWNER-isolation tests and stale-session rejection, exports and
-independently restores the new full volume, then checks that monitor and original
-Status Page/group configuration hashes are unchanged. It never calls setup,
+independently restores the new full volume, then checks that owner password/TOTP, monitor and original
+Status Page/group configuration hashes are unchanged. Authentication fingerprints
+remain private; no factor is printed, overwritten or re-enrolled. A successful
+interactive admin TOTP login is not claimed when the owner has a different current
+factor from the local Keychain record. It never calls setup,
 add-monitor, saveStatusPage or any production mutation bootstrap routine.
 
 Rollback retains the previous immutable main and paired backup references from
