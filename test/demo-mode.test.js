@@ -23,3 +23,27 @@ const authorization='Basic '+Buffer.from('owner:'+owner).toString('base64');awai
 test('server-enforced absolute TTL expires an otherwise valid signed session',async t=>{const {createDemo}=createRequire(import.meta.url)('../scripts/demo-mode.cjs');t.mock.timers.enable({apis:['Date'],now:1793000000000});const handler=createDemo({KUMAEDGE_DEMO_ENABLED:'true',KUMAEDGE_DEMO_PASSWORD_HASH:hashPassword(password),KUMAEDGE_DEMO_SESSION_SECRET:'separate-expiration-test-secret-over-32-bytes',KUMAEDGE_DEMO_SESSION_TTL:'60',KUMAEDGE_PUBLIC_ORIGIN:'https://demo.example'},{hostname:'127.0.0.1',port:1});const server=http.createServer((req,res)=>handler(req,res,req.url).catch(()=>{res.writeHead(500);res.end();}));server.listen(0,'127.0.0.1');await once(server,'listening');t.after(async()=>{server.closeAllConnections();await new Promise(r=>server.close(r));});const request=(p,o={})=>fetch('http://127.0.0.1:'+server.address().port+p,{redirect:'manual',...o});const cookie=await login(request);assert.equal((await request('/demo/api/status',{headers:{cookie}})).status,200);t.mock.timers.tick(61000);assert.equal((await request('/demo/api/status',{headers:{cookie}})).status,401);});
 
 test('privileged operations are exact POST-only routes and reject bodies before origin access',async t=>{const f=await fixture(t);const authorization='Basic '+Buffer.from('owner:'+owner).toString('base64');assert.equal((await f.request('/__kumaedge/backup',{headers:{authorization}})).status,404);assert.equal((await f.request('/__kumaedge/backup',{method:'POST',headers:{authorization},body:'untrusted'})).status,400);assert.equal((await f.request('/__kumaedge/target/down',{method:'POST',headers:{'x-kumaedge-ops-token':'fake'}})).status,401);assert.equal(f.hits(),0);});
+
+test('premium login and dashboard share canonical affiliate destinations and secure external links',async t=>{
+ const f=await fixture(t),links=createRequire(import.meta.url)('../scripts/demo-public.cjs');
+ assert.equal(links.bunnyAffiliate,'https://bunny.net?ref=4mvi9kc9vn');
+ const loginHTML=await (await f.request('/demo/login')).text(),cookie=await login(f.request),dashboardHTML=await (await f.request('/demo',{headers:{cookie}})).text();
+ for(const html of [loginHTML,dashboardHTML]){
+  assert.match(html,/KumaEdge <span class="title-dash">—<\/span><br><span>Live Monitoring Demo/);
+  assert.match(html,/Running on Bunny Magic Containers/);assert.ok(html.includes(links.disclosure));assert.match(html,/Not an official Bunny.net or Uptime Kuma product/);
+  let bunny=0;
+  for(const [_,attrs] of html.matchAll(/<a\s+([^>]+)>/g)){
+   const href=attrs.match(/href="([^"]+)"/)[1];if(!href.startsWith('https://'))continue;
+   const url=new URL(href);assert.match(attrs,/target="_blank"/);for(const token of ['noopener','noreferrer','sponsored'])assert.ok(attrs.match(/rel="([^"]+)"/)[1].split(' ').includes(token));
+   assert.ok([links.github,links.upstream,links.bunnyAffiliate].includes(href));
+   if(url.hostname==='bunny.net'){bunny++;assert.equal(href,links.bunnyAffiliate);assert.equal(url.searchParams.get('ref'),'4mvi9kc9vn');}
+  }
+  assert.equal(bunny,3);assert.match(html,/Deploy with Bunny.net/);assert.match(html,/Hosted on Bunny.net/);assert.match(html,/Powered by Uptime Kuma/);assert.doesNotMatch(html,/http-equiv="refresh"|location\.(?:href|replace)/);
+ }
+});
+
+test('failed demo login renders an escaped premium retry form without echoing credentials',async t=>{
+ const f=await fixture(t);const first=await f.request('/demo/login'),pre=first.headers.get('set-cookie').split(';')[0],csrf=(await first.text()).match(/name="csrf" value="([^"]+)"/)[1];
+ const secret='wrong-password-must-never-be-echoed';const response=await f.request('/demo/login',{method:'POST',headers:{cookie:pre,origin:'https://demo.example','content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({username:'<script>private-name</script>',password:secret,csrf})});
+ assert.equal(response.status,401);const html=await response.text();assert.match(html,/role="alert"/);assert.match(html,/The demo username or password is incorrect/);assert.match(html,/name="csrf"/);assert.doesNotMatch(html,/private-name|wrong-password-must-never-be-echoed/);assert.notEqual(response.headers.get('set-cookie').split(';')[0],pre);assert.match(response.headers.get('cache-control'),/no-store/);
+});

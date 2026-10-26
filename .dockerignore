@@ -29,3 +29,5 @@ infra
 
 !scripts/engine-launch.cjs
 !scripts/volume-backup.py
+
+!scripts/demo-public.cjs
