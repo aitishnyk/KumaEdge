@@ -33,3 +33,10 @@ For CDN rollback, review `cdn-original.private.json` against current zone settin
 and restore only the changed cache/TLS fields/rule on Pull Zone 6868097. Removing
 no-store or HTTPS protection is a security regression, not a default rollback.
 Do not post the full private zone JSON or reuse it to create another zone.
+
+Provider 0.19.1 reports the computed endpoint ID as unknown during any app update.
+The guard permits only this metadata unknown with the exact provider marker while
+requiring the endpoint name/type/port and existing computed Pull Zone ID to remain
+identical. Every other endpoint field is compared. The existing endpoint ID and
+hostname must be checked again against Bunny immediately before and after apply;
+this computed unknown alone is not evidence of a replacement or a new Pull Zone.

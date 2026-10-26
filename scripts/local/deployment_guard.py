@@ -15,8 +15,18 @@ def validate_plan(plan,app_id,sha,digest):
             continue
         if before.get('id')!=app_id or after.get('id')!=app_id:raise ValueError('App identity changed or unknown')
         if len(after.get('container',[]))!=2 or {c['name'] for c in after['container']}!={'kumaedge','owner-gateway'}:raise ValueError('Exactly the existing two containers required')
-        for old,new in zip(before['container'],after['container']):
+        for index,(old,new) in enumerate(zip(before['container'],after['container'])):
             if old['name']!=new['name']:raise ValueError('Container order/identity changed')
+            # Provider 0.19.1 marks endpoint.id unknown on ANY app update. It is
+            # computed metadata, not a configured replacement. Permit only that
+            # single unknown; every endpoint field and Pull Zone ID stays equal.
+            unknown=change.get('after_unknown',{}).get('container',[])
+            for endpoint_index,(old_endpoint,new_endpoint) in enumerate(zip(old.get('endpoint',[]),new.get('endpoint',[]))):
+                if new_endpoint.get('id') is None and old_endpoint.get('id'):
+                    flags=unknown[index].get('endpoint',[]) if len(unknown)>index else []
+                    if len(flags)<=endpoint_index or flags[endpoint_index].get('id') is not True:raise ValueError('Endpoint identity changed without provider unknown marker')
+                    new_endpoint['id']=old_endpoint['id']
+
             for key in ['image_tag','image_digest']:
                 if new[key]!=(sha if key=='image_tag' else digest):raise ValueError('Image is not the tested release')
                 if old[key]!=new[key]:fields.append(old['name']+'.'+key)

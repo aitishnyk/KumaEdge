@@ -27,3 +27,11 @@ class DeploymentGuardTests(unittest.TestCase):
   with self.assertRaises(ValueError):m.validate_plan(p,'existing','sha','digest')
   p=self.plan();p['resource_changes'].append({'address':'new.zone'})
   with self.assertRaises(ValueError):m.validate_plan(p,'existing','sha','digest')
+
+ def test_only_computed_endpoint_id_unknown_is_allowed(self):
+  p=self.plan();c=p['resource_changes'][0]['change'];c['after']['container'][1]['endpoint'][0]['id']=None
+  with self.assertRaises(ValueError):m.validate_plan(p,'existing','sha','digest')
+  c['after_unknown']={'container':[{}, {'endpoint':[{'id':True}]}]}
+  self.assertEqual(len(m.validate_plan(p,'existing','sha','digest')),5)
+  c['after']['container'][1]['endpoint'][0]['cdn'][0]['pullzone_id']=None
+  with self.assertRaises(ValueError):m.validate_plan(p,'existing','sha','digest')
