@@ -19,17 +19,19 @@ async function login(secret){
   // Kuma rejects replay of a successfully used TOTP. Wait for the next real
   // time step; never clear the last-token state or bypass the factor.
   if(result.ok!==true){console.log('Waiting for fresh real TOTP time step after token rejection');await sleep(31000-Date.now()%30000);result=await request(s,'login',{...user,token:otp(secret)});}
-  assert.equal(result.ok,true,'Fresh owner TOTP login failed');
- }else assert.equal(r.ok,true,'Owner login failed');
+  assert.equal(result.ok,true,'Fresh owner TOTP login failed');return true;
+ }else {assert.equal(r.ok,true,'Owner login failed');return false;}
 }
 async function main(){
  await new Promise((resolve,reject)=>{s.once('info',()=>setTimeout(resolve,300));s.once('connect_error',()=>reject(Error('Protected gateway unavailable')));});
  const setup=await request(s,'needSetup');let secret=process.env.KUMAEDGE_OWNER_TOTP_SECRET;
  if(setup===true){assert.equal(process.env.KUMAEDGE_PERMIT_FRESH_SETUP,'true');await ok('setup',user.username,user.password);}
- await login(secret);
- if(!secret){
-  const prepared=await ok('prepare2FA',user.password);secret=new URL(prepared.uri).searchParams.get('secret');assert.ok(secret);await ok('verifyToken',otp(secret),user.password);await ok('save2FA',user.password);
-  fs.writeFileSync('/tmp/kumaedge-bootstrap-secrets.private.json',JSON.stringify({totpSecret:secret}),{mode:0o600});
+ const factorRequired=await login(secret);
+ if(!factorRequired){
+  assert.notEqual(process.env.KUMAEDGE_BOOTSTRAP_MODE,'check','Configured TOTP is required for checks');
+  const prepared=await ok('prepare2FA',user.password);secret=new URL(prepared.uri).searchParams.get('secret');assert.ok(secret);
+  const factorFile=fs.openSync('/tmp/kumaedge-bootstrap-secrets.private.json','w',0o600);try{fs.writeFileSync(factorFile,JSON.stringify({totpSecret:secret}));fs.fsyncSync(factorFile);}finally{fs.closeSync(factorFile);}
+  await ok('verifyToken',otp(secret),user.password);await ok('save2FA',user.password);
  }
  if(process.env.KUMAEDGE_BOOTSTRAP_MODE!=='check'){await request(s,'logout');const challenge=await request(s,'login',user);assert.equal(challenge.tokenRequired,true);const invalid=otp(secret)==='000000'?'000001':'000000';assert.notEqual((await request(s,'login',{...user,token:invalid})).ok,true);await login(secret);}report.owner='PASS';report.totp='PASS';
  if(process.env.KUMAEDGE_BOOTSTRAP_MODE==='check'){
