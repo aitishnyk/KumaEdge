@@ -1,6 +1,6 @@
 {
   "name": "kumaedge",
-  "version": "0.20.0",
+  "version": "0.20.1",
   "private": true,
   "type": "module",
   "description": "Uptime Kuma single-writer deployment and local release tooling for Bunny Magic Containers",
