@@ -1,37 +1,15 @@
-# Demo configuration
+# Enable a private or public DEMO
 
-Copy variable names from `.env.example`; never commit populated configuration.
-For the existing deployment run `python3 scripts/local/configure-demo.py` directly
-in a trusted owner terminal. It reads the new password with hidden input, derives
-a salted scrypt hash and writes only the hash/configuration and a separate random
-session secret to the ignored, mode-0600 deployment directory. Keep the demo
-password in your password manager. It must differ from gateway/admin credentials.
+DEMO is an independent gateway application, not another Uptime Kuma engine. It reads only two fixed upstream public Status Page APIs. Both the configured ID/label allowlist and upstream public membership must allow a service. It never forwards visitor-supplied URLs, OWNER headers, tokens, raw monitor metadata or SQLite.
 
-| Variable | Default / meaning |
-|---|---|
-| KUMAEDGE_DEMO_ENABLED | false; only literal true enables the handler |
-| KUMAEDGE_DEMO_USERNAME | demo |
-| KUMAEDGE_DEMO_PASSWORD_HASH | required when enabled; scrypt$16384$8$1$16-byte-hex-salt$32-byte-hex-key |
-| KUMAEDGE_DEMO_SESSION_SECRET | required, distinct random secret of at least 32 bytes |
-| KUMAEDGE_DEMO_SESSION_TTL | 3600 seconds; allowed 60–86400 |
-| KUMAEDGE_DEMO_PUBLIC_TITLE | Service health; escaped, at most 100 characters |
-| KUMAEDGE_PUBLIC_ORIGIN | explicit canonical HTTPS origin, no trailing slash |
-| KUMAEDGE_DEMO_STATUS_PAGE | existing public Kuma status-page slug, or blank |
-| KUMAEDGE_DEMO_SERVICES | JSON array of {id: positive integer, label: public label}; at most 50 |
+First create a deliberately public upstream Status Page. Configure the gateway through your private `TF_VAR_demo_environment` map; see [Configuration](CONFIGURATION.md). Keep credentials out of shell history. A private demo password must be 16–1024 bytes; use a password manager and the scrypt generator API in [`demo-mode.cjs`](../scripts/demo-mode.cjs). The maintainer's `configure-demo.py` is scoped to that existing deployment; use the environment map for new installs.
 
-Example non-secret allowlist: `[{"id":1,"label":"Public website"}]`.
-A service is returned only when its ID is in both this allowlist and the public
-status-page groups. Private names/URLs/configuration are never copied. Blank slug
-or empty allowlist produces an honest empty dashboard. Publishing a status page
-itself is an owner decision; never silently declassify private monitors.
+For an intentionally public showcase set `KUMAEDGE_DEMO_PUBLIC_CREDENTIALS=true`, username `demo`, and a random-salt scrypt verifier of the public password. This permits **only** demo/demo as the short identity. Store no password variable. Preserve an independent random session secret. The public UI explicitly displays the public credentials. Private deployments must omit the opt-in flag and never reuse demo/demo.
 
-Terraform accepts only these keys in sensitive `demo_environment`. The deployment
-script reads `demo.private.json` from `.local-deployments/<app-id>/`; it never uses a
-source-SHA directory for deployment credentials or state. The backup-worker image
-is paired release packaging and must not become a third Bunny container.
+```bash
+node -e 'process.stdout.write(require("./scripts/demo-mode.cjs").hashPassword("demo", undefined, {publicCredentials:true})+"\n")'
+```
 
-To rotate credentials, privately archive the existing configuration, rerun the
-terminal helper and review the normal image/config update. A gateway restart drops
-all sessions; changing the session secret also invalidates every signed cookie.
-Do not expect session continuity across restarts. No fallback owner credential is
-accepted for demo, and an invalid enabled configuration prevents gateway startup.
+The output is a salted verifier, not an admin credential. Place it in your private deployment configuration as `KUMAEDGE_DEMO_PASSWORD_HASH`. Set the exact HTTPS origin, public slug and allowlist, then review your Terraform plan and approve any paid update locally. Rotating DEMO must preserve OWNER/admin/TOTP, volume, monitor configuration and allowlist. Rotate the session secret and restart the gateway to invalidate previous sessions. Verify old cookies fail, wrong credentials fail, demo/demo succeeds, administrative routes and Socket.IO remain unauthorized, and responses stay private/no-store.
+
+Reference public demo: https://mc-b4n2u1709h.bunny.run/demo — `demo` / `demo`, read-only. This identity is intentionally public and grants no administrative privileges.

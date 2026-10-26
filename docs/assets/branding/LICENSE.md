@@ -1,0 +1,1 @@
+KumaEdge branding, diagrams and Obsidian Cloud styles were created for this project by KumaEdge contributors and are covered by the repository MIT license. No Bunny.net or Uptime Kuma logos are included. Screenshots show actual application UI; upstream attribution and MIT notices remain in LICENSE. Social preview contains a cropped, proportionally resized real demo screenshot.

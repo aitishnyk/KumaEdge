@@ -1,8 +1,8 @@
 import test from 'node:test';import assert from 'node:assert/strict';import http from 'node:http';import {fork} from 'node:child_process';import {once} from 'node:events';import {createRequire} from 'node:module';
 const {hashPassword}=createRequire(import.meta.url)('../scripts/demo-mode.cjs');
 const password='demo-password-for-local-tests-only',owner='owner-password-for-local-tests-only-123456';
-async function fixture(t,enabled=true){let hits=0;const origin=http.createServer((req,res)=>{hits++;assert.equal(req.headers.authorization,undefined);assert.equal(req.headers.forwarded,undefined);assert.equal(req.headers['x-kumaedge-ops-token'],undefined);assert.equal(req.headers['x-forwarded-host'],undefined);assert.doesNotMatch(req.headers.cookie||'',/__Host-kumaedge_demo/);res.setHeader('content-type','application/json');if(req.url==='/api/status-page/public')res.end(JSON.stringify({publicGroupList:[{monitorList:[{id:1,name:'SECRET internal hostname',url:'https://private'}]}]}));else if(req.url==='/api/status-page/heartbeat/public')res.end(JSON.stringify({heartbeatList:{1:[{status:1,ping:12,time:'2026-10-26 12:00:00',msg:'secret message'}],2:[{status:1,ping:99}]},uptimeList:{'1_24':0.999},secret:'NEVER'}));else res.end('OWNER');});origin.listen(0,'127.0.0.1');await once(origin,'listening');
-const child=fork('scripts/front-door.cjs',[],{stdio:['ignore','ignore','pipe','ipc'],env:{...process.env,KUMAEDGE_FRONT_DOOR_PASSWORD:owner,KUMAEDGE_GATEWAY_PORT:'0',KUMAEDGE_UPSTREAM_PORT:String(origin.address().port),KUMAEDGE_DEMO_ENABLED:String(enabled),KUMAEDGE_DEMO_PASSWORD_HASH:hashPassword(password),KUMAEDGE_DEMO_SESSION_SECRET:'a-separate-secret-of-at-least-32-bytes',KUMAEDGE_PUBLIC_ORIGIN:'https://demo.example',KUMAEDGE_DEMO_STATUS_PAGE:'public',KUMAEDGE_DEMO_SERVICES:JSON.stringify([{id:1,label:'Public service'},{id:2,label:'Unpublished service'}])}});const [{port}]=await once(child,'message');t.after(async()=>{child.kill();await once(child,'exit');origin.closeAllConnections();await new Promise(r=>origin.close(r));});const url='http://127.0.0.1:'+port;const request=(p,o={})=>fetch(url+p,{redirect:'manual',...o});return {request,child,hits:()=>hits};}
+async function fixture(t,enabled=true,publicCredentials=false){let hits=0;const origin=http.createServer((req,res)=>{hits++;assert.equal(req.headers.authorization,undefined);assert.equal(req.headers.forwarded,undefined);assert.equal(req.headers['x-kumaedge-ops-token'],undefined);assert.equal(req.headers['x-forwarded-host'],undefined);assert.doesNotMatch(req.headers.cookie||'',/__Host-kumaedge_demo/);res.setHeader('content-type','application/json');if(req.url==='/api/status-page/public')res.end(JSON.stringify({publicGroupList:[{monitorList:[{id:1,name:'SECRET internal hostname',url:'https://private'}]}]}));else if(req.url==='/api/status-page/heartbeat/public')res.end(JSON.stringify({heartbeatList:{1:[{status:1,ping:12,time:'2026-10-26 12:00:00',msg:'secret message'}],2:[{status:1,ping:99}]},uptimeList:{'1_24':0.999},secret:'NEVER'}));else res.end('OWNER');});origin.listen(0,'127.0.0.1');await once(origin,'listening');
+const child=fork('scripts/front-door.cjs',[],{stdio:['ignore','ignore','pipe','ipc'],env:{...process.env,KUMAEDGE_FRONT_DOOR_PASSWORD:owner,KUMAEDGE_GATEWAY_PORT:'0',KUMAEDGE_UPSTREAM_PORT:String(origin.address().port),KUMAEDGE_DEMO_ENABLED:String(enabled),KUMAEDGE_DEMO_PUBLIC_CREDENTIALS:String(publicCredentials),KUMAEDGE_DEMO_PASSWORD_HASH:publicCredentials?hashPassword('demo',undefined,{publicCredentials:true}):hashPassword(password),KUMAEDGE_DEMO_SESSION_SECRET:'a-separate-secret-of-at-least-32-bytes',KUMAEDGE_PUBLIC_ORIGIN:'https://demo.example',KUMAEDGE_DEMO_STATUS_PAGE:'public',KUMAEDGE_DEMO_SERVICES:JSON.stringify([{id:1,label:'Public service'},{id:2,label:'Unpublished service'}])}});const [{port}]=await once(child,'message');t.after(async()=>{child.kill();await once(child,'exit');origin.closeAllConnections();await new Promise(r=>origin.close(r));});const url='http://127.0.0.1:'+port;const request=(p,o={})=>fetch(url+p,{redirect:'manual',...o});return {request,child,hits:()=>hits};}
 async function login(request){const r=await request('/demo/login');assert.equal(r.headers.get('referrer-policy'),'same-origin');const html=await r.text(),cookie=r.headers.get('set-cookie').split(';')[0],csrf=html.match(/name="csrf" value="([^"]+)"/)[1];const response=await request('/demo/login',{method:'POST',headers:{cookie,origin:'https://demo.example','content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({username:'demo',password,csrf})});assert.equal(response.status,303);return response.headers.getSetCookie()[0].split(';')[0];}
 test('demo defaults disabled and never proxies demo traffic',async t=>{const f=await fixture(t,false);assert.equal((await f.request('/demo')).status,404);assert.equal(f.hits(),0);});
 test('separate session, public allowlist, no owner escalation, CSRF logout and tampering',async t=>{const f=await fixture(t);let r=await f.request('/demo');assert.equal(r.status,303);assert.equal(r.headers.get('location'),'/demo/login');assert.equal((await f.request('/demo/api/status')).status,401);const cookie=await login(f.request);r=await f.request('/demo/api/status',{headers:{cookie}});assert.equal(r.status,200);assert.match(r.headers.get('cache-control'),/no-store/);const text=await r.text();assert.doesNotMatch(text,/SECRET|internal|private|NEVER|message|Unpublished/);const d=JSON.parse(text);assert.equal(d.services.length,1);assert.equal(d.services[0].responseMs,12);assert.equal(d.services[0].label,'Public service');
@@ -46,4 +46,39 @@ test('failed demo login renders an escaped premium retry form without echoing cr
  const f=await fixture(t);const first=await f.request('/demo/login'),pre=first.headers.get('set-cookie').split(';')[0],csrf=(await first.text()).match(/name="csrf" value="([^"]+)"/)[1];
  const secret='wrong-password-must-never-be-echoed';const response=await f.request('/demo/login',{method:'POST',headers:{cookie:pre,origin:'https://demo.example','content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({username:'<script>private-name</script>',password:secret,csrf})});
  assert.equal(response.status,401);const html=await response.text();assert.match(html,/role="alert"/);assert.match(html,/The demo username or password is incorrect/);assert.match(html,/name="csrf"/);assert.doesNotMatch(html,/private-name|wrong-password-must-never-be-echoed/);assert.notEqual(response.headers.get('set-cookie').split(';')[0],pre);assert.match(response.headers.get('cache-control'),/no-store/);
+});
+
+
+test('short public credential is exact and opt-in; private password policy stays strong',()=>{
+ assert.throws(()=>hashPassword('demo'));assert.throws(()=>hashPassword('weak',undefined,{publicCredentials:true}));
+ assert.match(hashPassword('demo',undefined,{publicCredentials:true}),/^scrypt\$/);
+});
+test('public demo accepts demo/demo across shared peer traffic and rejects wrong/owner access',async t=>{
+ const f=await fixture(t,true,true);let cookie;
+ for(let i=0;i<12;i++){
+  const first=await f.request('/demo/login'),html=await first.text();assert.match(html,/Public Demo Access/);
+  const csrf=html.match(/name="csrf" value="([^"]+)"/)[1];
+  const r=await f.request('/demo/login',{method:'POST',headers:{cookie:first.headers.get('set-cookie').split(';')[0],origin:'https://demo.example','content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({username:'demo',password:i===0?'wrong-password-is-long':'demo',csrf})});
+  assert.equal(r.status,i===0?401:303);if(i>0)cookie=r.headers.getSetCookie()[0].split(';')[0];
+ }
+ for(const path of ['/dashboard','/socket.io/?EIO=4&transport=polling','/__kumaedge/backup'])assert.equal((await f.request(path,{headers:{cookie}})).status,401);
+ assert.equal((await f.request('/demo/api/status',{headers:{cookie}})).status,200);
+});
+
+
+test('public opt-in rejects a private verifier and other usernames at startup',()=>{
+ const {createDemo}=createRequire(import.meta.url)('../scripts/demo-mode.cjs');
+ const env={KUMAEDGE_DEMO_ENABLED:'true',KUMAEDGE_DEMO_PUBLIC_CREDENTIALS:'true',KUMAEDGE_DEMO_PASSWORD_HASH:hashPassword(password),KUMAEDGE_DEMO_SESSION_SECRET:'separate-test-secret-of-32-bytes-long',KUMAEDGE_PUBLIC_ORIGIN:'https://demo.example'};
+ assert.throws(()=>createDemo(env,{hostname:'localhost',port:1}),/demo verifier/);
+ assert.throws(()=>createDemo({...env,KUMAEDGE_DEMO_USERNAME:'owner'},{hostname:'localhost',port:1}),/username/);
+});
+
+
+test('public login resource budget stays bounded without trusting forwarded peers',async t=>{
+ const f=await fixture(t,true,true);let limited=false;
+ for(let i=0;i<160;i++){
+  const r=await f.request('/demo/login',{method:'POST',headers:{'x-forwarded-for':'192.0.2.'+(i%250),'content-type':'application/x-www-form-urlencoded'},body:'csrf=invalid'});
+  assert.ok([403,429].includes(r.status));if(r.status===429){limited=true;break;}
+ }
+ assert.equal(limited,true);assert.equal(f.hits(),0);
 });

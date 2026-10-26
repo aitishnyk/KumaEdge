@@ -1,5 +1,5 @@
 output "app_id" {
-  description = "Bunny Magic Containers App ID. Use as BUNNY_MC_APP_ID in GitHub Actions."
+  description = "Bunny Magic Containers App ID. Retain privately with deployment state."
   value       = bunnynet_compute_container_app.kumaedge.id
 }
 
