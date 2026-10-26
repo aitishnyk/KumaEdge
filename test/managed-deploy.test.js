@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 test("public release preflight verifies SHA, publisher and both manifests but cannot deploy",()=>{
-  const w=readFileSync(".github/workflows/deploy-managed.yml","utf8");
+  const w=readFileSync("docs/legacy-workflows/deploy-managed.yml.disabled","utf8");
   const sha=w.indexOf("Validate SHA is from the protected main branch");
   const release=w.indexOf("Require a successful official main publishing run");
   const registry=w.indexOf("Verify release image exists before operator approval");
@@ -21,7 +21,7 @@ test("public release preflight verifies SHA, publisher and both manifests but ca
 });
 
 test("Bunny metadata preflight is intentionally credential-free",()=>{
-  const w=readFileSync(".github/workflows/bunny-access-preflight.yml","utf8");
+  const w=readFileSync("docs/legacy-workflows/bunny-access-preflight.yml.disabled","utf8");
   assert.match(w,/HAS_BUNNY_APP_ID/);
   assert.match(w,/GitHub never receives Bunny account API keys/);
   assert.doesNotMatch(w,/secrets\.|BUNNYNET_API_KEY|container-update-image/);

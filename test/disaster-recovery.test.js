@@ -7,7 +7,7 @@ test("disaster recovery script passes Bash syntax and is isolated from Bunny",()
   const check=spawnSync("bash",["-n","scripts/smoke-disaster-recovery.sh"],{encoding:"utf8"});
   assert.equal(check.status,0,check.stderr);
   const source=readFileSync("scripts/smoke-disaster-recovery.sh","utf8");
-  const workflow=readFileSync(".github/workflows/bunny-managed-image.yml","utf8");
+  const workflow=readFileSync("docs/legacy-workflows/bunny-managed-image.yml.disabled","utf8");
   for(const value of ["docker volume create","docker volume rm",
      "KUMAEDGE_APP_STOPPED=yes","volume-backup.py backup",
      "volume-backup.py verify","volume-backup.py restore",

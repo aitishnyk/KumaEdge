@@ -50,13 +50,19 @@ fi
 # Refuse to silently install an outdated, hard-coded image tag.
 # Only use the exact SHA printed by a successful main-branch GHCR publish.
 if [[ -z "${TF_VAR_image_tag:-}" ]]; then
-  echo "Open https://github.com/aitishnyk/KumaEdge/actions/workflows/bunny-managed-image.yml"
+  echo "Use the exact SHA verified by scripts/local/publish.sh"
   read -r -p "Enter a successfully published image tag (40-character commit SHA): " TF_VAR_image_tag
 fi
 if [[ ! "$TF_VAR_image_tag" =~ ^[a-f0-9]{40}$ ]]; then
   echo "Expected a verified published 40-character lowercase SHA; no resources created." >&2
   exit 2
 fi
+if [[ -z "${TF_VAR_front_door_password:-}" ]]; then
+  read -r -s -p "Private owner gateway password (32+ characters, hidden): " TF_VAR_front_door_password
+  echo
+fi
+[[ ${#TF_VAR_front_door_password} -ge 32 ]] || { echo "Gateway password too short"; exit 2; }
+export TF_VAR_front_door_password
 export TF_VAR_image_tag
 
 if [[ -z "$BUNNYNET_API_KEY" || -z "$TF_VAR_ghcr_read_token" || -z "$TF_VAR_ghcr_username" ]]; then
@@ -92,7 +98,7 @@ release_docker_config=""
 cleanup() {
   if [[ -n "$plan" ]]; then rm -f -- "$plan"; fi
   if [[ -n "$release_docker_config" ]]; then rm -rf -- "$release_docker_config"; fi
-  unset BUNNYNET_API_KEY TF_VAR_ghcr_read_token TF_VAR_ghcr_username TF_VAR_image_tag TF_VAR_backup_storage_zone TF_VAR_backup_storage_access_key TF_VAR_backup_age_recipient
+  unset TF_VAR_front_door_password BUNNYNET_API_KEY TF_VAR_ghcr_read_token TF_VAR_ghcr_username TF_VAR_image_tag TF_VAR_backup_storage_zone TF_VAR_backup_storage_access_key TF_VAR_backup_age_recipient
 }
 trap cleanup EXIT
 
@@ -130,6 +136,7 @@ terraform plan -input=false -out="$plan"
 terraform show -no-color "$plan"
 echo
 echo "Review the full plan above. PAID resources may be created and charged."
+echo 'Billing is usage based: CPU $0.02/core-hour; RAM $0.005/GB-hour; volume $0.10/GB/month; CDN traffic/taxes extra. No fixed cap.'
 read -r -p 'Type CREATE KUMAEDGE to authorize terraform apply: ' confirmation
 if [[ "$confirmation" != "CREATE KUMAEDGE" ]]; then
   echo "Cancelled safely; nothing applied."

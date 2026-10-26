@@ -1,3 +1,8 @@
+> v0.19 candidate: releases now run locally on the Mac, without GitHub Actions.
+> See [Local Docker release](LOCAL_DOCKER_RELEASE.md), [upstream audit](UPSTREAM_VERSION_AUDIT.md),
+> [live deployment gates](BUNNY_LIVE_DEPLOYMENT.md) and [rollback](RELEASE_AND_ROLLBACK.md).
+> Historical CI/publisher instructions below are retained for older releases and are not current release prerequisites.
+
 # KumaEdge v0.11 — External operations and disaster-recovery acceptance
 
 KumaEdge Managed is a one-replica Uptime Kuma monitoring engine on Bunny Magic Containers. **If KumaEdge itself stops, its internal alerting may stop too**. GitHub Actions offers an independent read-only HTTP + WebSocket observer, which can mark a workflow as failed.

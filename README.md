@@ -1,3 +1,9 @@
+> **v0.19.0-rc.1 candidate — local Docker release.** Upstream pin: Uptime Kuma 2.5.7.
+> Live status: **DEPLOYMENT_BLOCKED**, no verified demo URL yet.
+> GitHub Actions workflows are archived; use [local release](docs/LOCAL_DOCKER_RELEASE.md).
+> See [actual acceptance](docs/BUNNY_LIVE_ACCEPTANCE_REPORT.md), [upstream audit](docs/UPSTREAM_VERSION_AUDIT.md)
+> and [live deployment gates](docs/BUNNY_LIVE_DEPLOYMENT.md). Older CI instructions below are historical.
+
 # KumaEdge
 
 **Run Uptime Kuma on Bunny.net without managing your own VPS.**

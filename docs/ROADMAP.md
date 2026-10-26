@@ -1,3 +1,8 @@
+> v0.19 candidate: releases now run locally on the Mac, without GitHub Actions.
+> See [Local Docker release](LOCAL_DOCKER_RELEASE.md), [upstream audit](UPSTREAM_VERSION_AUDIT.md),
+> [live deployment gates](BUNNY_LIVE_DEPLOYMENT.md) and [rollback](RELEASE_AND_ROLLBACK.md).
+> Historical CI/publisher instructions below are retained for older releases and are not current release prerequisites.
+
 # KumaEdge roadmap and release gates
 
 ## v0.1 — Foundation

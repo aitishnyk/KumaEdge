@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 const dockerfile=readFileSync("Dockerfile","utf8");
 const worker=readFileSync("Dockerfile.backup","utf8");
-const workflow=readFileSync(".github/workflows/bunny-managed-image.yml","utf8");
+const workflow=readFileSync("docs/legacy-workflows/bunny-managed-image.yml.disabled","utf8");
 
 test("pinned upstream image digest",()=>{
-  assert.match(dockerfile,/^FROM louislam\/uptime-kuma:2@sha256:[a-f0-9]{64}$/m);
+  assert.match(dockerfile,/^FROM louislam\/uptime-kuma:2\.5\.7@sha256:[a-f0-9]{64}$/m);
 });
 test("pinned backup image digest",()=>{
   assert.match(worker,/^FROM python:3\.12-slim-bookworm@sha256:[a-f0-9]{64}$/m);
