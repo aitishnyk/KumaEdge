@@ -8,6 +8,7 @@ EVIDENCE="$ROOT/.local-release/$SHA"
 mkdir -p "$EVIDENCE"
 export PYTHONDONTWRITEBYTECODE=1
 require_source() {
+  [[ "$(git rev-parse HEAD)" == "$SHA" ]] || { echo 'Source revision changed during release.' >&2; exit 2; }
   [[ "${KUMAEDGE_REVIEWED_SHA:-}" == "$SHA" ]] || { echo 'Set KUMAEDGE_REVIEWED_SHA to the exact reviewed HEAD.' >&2; exit 2; }
   [[ -z "$(git status --porcelain --untracked-files=all)" ]] || { echo 'Release source tree must be clean.' >&2; exit 2; }
   [[ -z "${CI:-}" ]] || { echo 'Run on trusted local Mac, outside CI.' >&2; exit 2; }
