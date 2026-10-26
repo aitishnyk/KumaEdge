@@ -24,6 +24,9 @@ else
   printf '%s' "$registry_token" | docker --config "$release_config" login ghcr.io -u "$registry_user" --password-stdin >/dev/null
   unset registry_token
 fi
+release_docker_host="$(docker context inspect --format '{{.Endpoints.docker.Host}}')"
+unset DOCKER_CONTEXT
+export DOCKER_HOST="$release_docker_host"
 export DOCKER_CONFIG="$release_config"
 rm -f "$EVIDENCE/publish-guard.txt"
 # The guard distinguishes missing manifests from permission/network failures.

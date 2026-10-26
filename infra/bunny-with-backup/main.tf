@@ -34,7 +34,7 @@ resource "bunnynet_compute_container_app" "kumaedge" {
       timeout           = 5
       failure_threshold = 3
       http {
-        path            = "/"
+        path            = "/dashboard"
         expected_status = 200
       }
     }

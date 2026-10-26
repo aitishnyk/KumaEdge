@@ -12,4 +12,5 @@ bash scripts/smoke-disaster-recovery.sh "$main_image" > "$EVIDENCE/recovery.log"
 docker run --rm --entrypoint age "$backup_image" --version > "$EVIDENCE/backup-age.log"
 bash scripts/local/runtime.sh 'louislam/uptime-kuma:2@sha256:9912da7d7d9b6ddc0c2d904beb84d24689c1ed9c33b81419eb9008663a92a329' "$main_image" > "$EVIDENCE/migration.log" 2>&1
 python3 scripts/local/secret-scan.py
+require_source
 python3 scripts/local/evidence.py record

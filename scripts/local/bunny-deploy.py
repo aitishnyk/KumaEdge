@@ -60,6 +60,7 @@ else:
     print('PAID resources. CPU $0.02/core-hour consumed; RAM $0.005/GB-hour; volume $0.10/GB/month. CDN traffic and taxes additional. No fixed spending cap.')
     confirmation=input('Type APPLY PAID KUMAEDGE '+sha[:12]+' to authorize this exact plan: ')
     if confirmation!='APPLY PAID KUMAEDGE '+sha[:12]:raise SystemExit('No resources applied')
+    if run('git','rev-parse','HEAD')!=sha or run('git','status','--porcelain','--untracked-files=all'):raise SystemExit('Source changed during approval')
     terraform('apply','-input=false','-no-color','-state='+str(state),str(plan),output=directory/'bunny-apply.private.log')
     state.chmod(0o600)
     print('Apply requested. Live TLS/cache/WebSocket, 2FA, notifications and Bunny restore remain mandatory; inspect private state and outputs.')

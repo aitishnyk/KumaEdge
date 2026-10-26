@@ -24,7 +24,8 @@ async function main(){
   credentials.token=require('notp').totp.gen(require('thirty-two').decode(credentials.secret));
  }
  await ok('login',credentials);
- console.log('PASS authenticated real WebSocket login');
+ assert.equal((await fetch('http://127.0.0.1:3001/dashboard',{redirect:'manual'})).status,200);
+ console.log('PASS authenticated real WebSocket login and HTTP 200 readiness route');
  if(fs.existsSync('/opt/kumaedge/front-door.cjs')){
   const gatePassword=crypto.randomBytes(40).toString('hex');
   const gateway=require('child_process').spawn(process.execPath,['/opt/kumaedge/front-door.cjs'],{env:{...process.env,KUMAEDGE_FRONT_DOOR_PASSWORD:gatePassword},stdio:'ignore'});
