@@ -18,3 +18,5 @@ crash.*.log
 .local-release/
 __pycache__/
 *.pyc
+
+.local-deployments/

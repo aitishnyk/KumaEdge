@@ -102,6 +102,13 @@ resource "bunnynet_compute_container_app" "kumaedge" {
       name  = "KUMAEDGE_FRONT_DOOR_PASSWORD"
       value = var.front_door_password
     }
+    dynamic "env" {
+      for_each = nonsensitive(toset(keys(merge({ KUMAEDGE_DEMO_ENABLED = "false" }, var.demo_environment))))
+      content {
+        name  = env.value
+        value = merge({ KUMAEDGE_DEMO_ENABLED = "false" }, var.demo_environment)[env.value]
+      }
+    }
     endpoint {
       name = "web"
       type = "CDN"

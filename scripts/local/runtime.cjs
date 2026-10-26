@@ -76,6 +76,26 @@ async function main(){
  await ok('addStatusPage','Local acceptance','local-acceptance');
  const response=await fetch('http://127.0.0.1:3001/status/local-acceptance');assert.equal(response.status,200);
  console.log('PASS public status page route');
+ if(fs.existsSync('/opt/kumaedge/demo-mode.cjs')){
+  const config=(await ok('getStatusPage','local-acceptance')).config;
+  await ok('saveStatusPage','local-acceptance',config,'',[{name:'Public tests',monitorList:[{id:httpId}]}]);
+  const demoPassword=crypto.randomBytes(24).toString('hex'),gatePassword=crypto.randomBytes(32).toString('hex');
+  const env={...process.env,KUMAEDGE_FRONT_DOOR_PASSWORD:gatePassword,KUMAEDGE_DEMO_ENABLED:'true',KUMAEDGE_DEMO_PASSWORD_HASH:require('/opt/kumaedge/demo-mode.cjs').hashPassword(demoPassword),KUMAEDGE_DEMO_SESSION_SECRET:crypto.randomBytes(48).toString('hex'),KUMAEDGE_PUBLIC_ORIGIN:'https://local-demo.example',KUMAEDGE_DEMO_STATUS_PAGE:'local-acceptance',KUMAEDGE_DEMO_SERVICES:JSON.stringify([{id:httpId,label:'Public HTTP service'},{id:tcpId,label:'Must remain private'}])};
+  let gateway;
+  const start=async()=>{gateway=require('child_process').spawn(process.execPath,['/opt/kumaedge/front-door.cjs'],{env,stdio:'ignore'});for(let n=0;n<50;n++){try{if((await fetch('http://127.0.0.1:3002/healthz')).ok)return;}catch{}await sleep(100);}throw Error('Demo gateway failed');};
+  const stop=async()=>{gateway.kill('SIGTERM');await new Promise(r=>gateway.once('exit',r));};
+  try{
+   await start();const base='http://127.0.0.1:3002';
+   let r=await fetch(base+'/demo/login');const html=await r.text(),pre=r.headers.getSetCookie()[0].split(';')[0],csrf=html.match(/name="csrf" value="([^"]+)"/)[1];
+   r=await fetch(base+'/demo/login',{method:'POST',redirect:'manual',headers:{cookie:pre,origin:env.KUMAEDGE_PUBLIC_ORIGIN,'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({username:'demo',password:demoPassword,csrf})});assert.equal(r.status,303);const cookie=r.headers.getSetCookie()[0].split(';')[0];assert.match(r.headers.getSetCookie()[0],/Secure; HttpOnly; SameSite=Strict/);
+   r=await fetch(base+'/demo/api/status',{headers:{cookie}});assert.equal(r.status,200);const d=await r.json();assert.equal(d.services.length,1);assert.equal(d.services[0].label,'Public HTTP service');assert.equal(d.services[0].status,1);assert.ok(d.services[0].history.length>0);assert.equal(typeof d.services[0].responseMs,'number');assert.doesNotMatch(JSON.stringify(d),/127\.0\.0\.1|controlled-http|Must remain private|webhook|notificationID/);
+   assert.equal((await fetch(base+'/socket.io/?EIO=4&transport=polling',{headers:{cookie}})).status,401);
+   const denied=io(base,{transports:['websocket'],extraHeaders:{cookie},reconnection:false,timeout:3000});await new Promise((resolve,reject)=>{denied.once('connect',()=>reject(Error('Demo cookie upgraded to owner')));denied.once('connect_error',resolve);});denied.close();
+   await stop();await start();assert.equal((await fetch(base+'/demo/api/status',{headers:{cookie}})).status,401);
+   console.log('PASS real Kuma demo login, public allowlist, recorded metrics, owner HTTP/WebSocket denial and restart invalidation');
+  }finally{if(gateway&&gateway.exitCode===null)await stop();}
+ }
+
  fs.mkdirSync('/app/data/acceptance-assets',{recursive:true});fs.writeFileSync('/app/data/acceptance-assets/sentinel.txt','preserve complete volume\n');
  for(const id of [httpId,tcpId])await ok('pauseMonitor',id);
  const baseline={};for(const id of [httpId,tcpId])baseline[id]=(await ok('getMonitorBeats',id,24)).data.length;
