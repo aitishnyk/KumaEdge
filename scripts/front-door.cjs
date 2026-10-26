@@ -9,10 +9,18 @@ const upstream={hostname:'127.0.0.1',port:Number(process.env.KUMAEDGE_UPSTREAM_P
 const demo=require('./demo-mode.cjs').createDemo(process.env,upstream);
 const pathname=req=>{if(!req.url.startsWith('/')||req.url.startsWith('//')||/[\\\x00-\x20]/.test(req.url))return null;const p=req.url.split('?')[0];if(/%(?:2e|2f|5c|25|00)/i.test(p)||p.split('/').some(s=>s==='.'||s==='..'))return null;return p;};
 const isDemo=p=>p==='/demo'||p.startsWith('/demo/');
-const headers=req=>{const h={...req.headers};for(const k of Object.keys(h))if(k==='authorization'||k==='forwarded'||k==='x-real-ip'||k.startsWith('x-forwarded-'))delete h[k];h.host=upstream.hostname+':'+upstream.port;if(h.cookie){h.cookie=h.cookie.split(';').filter(p=>!p.trim().startsWith('__Host-kumaedge_demo')).join(';');if(!h.cookie)delete h.cookie;}return h;};
+const headers=req=>{const h={...req.headers};for(const k of Object.keys(h))if(k==='authorization'||k==='forwarded'||k==='x-real-ip'||k.startsWith('x-forwarded-')||k.startsWith('x-kumaedge-'))delete h[k];h.host=upstream.hostname+':'+upstream.port;if(h.cookie){h.cookie=h.cookie.split(';').filter(p=>!p.trim().startsWith('__Host-kumaedge_demo')).join(';');if(!h.cookie)delete h.cookie;}return h;};
 const server=http.createServer((req,res)=>{
  const p=pathname(req);if(['TRACE','CONNECT'].includes(req.method)){res.writeHead(405,cache);res.end();return;}if(p===null){res.writeHead(400,cache);res.end();return;}
  if(isDemo(p)){if(!demo){res.writeHead(404,cache);res.end();return;}demo(req,res,p).catch(()=>{if(!res.headersSent)res.writeHead(500,cache);res.end();});return;}
+ if(p.startsWith('/__kumaedge/')){
+  if(!permitted(req)){res.writeHead(401,cache);res.end();return;}
+  if(req.headers['transfer-encoding']||Number(req.headers['content-length']||0)!==0){res.writeHead(400,{...cache,connection:'close'});res.end();return;}
+  const routes={'/__kumaedge/backup':'/backup','/__kumaedge/target/up':'/target/up','/__kumaedge/target/down':'/target/down'};
+  if(req.method!=='POST'||!routes[req.url]){res.writeHead(404,cache);res.end();return;}
+  const proxy=http.request({hostname:'127.0.0.1',port:3003,path:routes[req.url],method:'POST',headers:{'x-kumaedge-ops-token':req.headers['x-kumaedge-ops-token']||''}},r=>{res.writeHead(r.statusCode,{...r.headers,...cache});r.pipe(res);});
+  proxy.setTimeout(120000,()=>proxy.destroy());proxy.on('error',()=>{if(!res.headersSent)res.writeHead(502,cache);res.end();});res.on('close',()=>proxy.destroy());proxy.end();return;
+ }
  if(req.url==='/healthz'){
   const probe=http.get({...upstream,path:'/'},r=>{r.resume();res.writeHead(r.statusCode<400?200:503,cache);res.end();});
   probe.setTimeout(3000,()=>probe.destroy());probe.on('error',()=>{res.writeHead(503,cache);res.end();});return;

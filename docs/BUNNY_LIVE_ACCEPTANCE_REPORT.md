@@ -1,6 +1,25 @@
 # Live acceptance — v0.20.0 candidate
 
-Overall: **BLOCKED pending owner interaction and full Bunny-source volume export**.
+Overall: **SOURCE CANDIDATE; live update pending exact local owner approval**.
+
+The owner explicitly waived retention/export of the old disposable test data and
+authorized a one-time contents reset of existing volume
+`117a1d40-18e4-4041-b8f7-57e2603cd32a` if necessary. The app, volume itself,
+endpoint, infrastructure state and infrastructure credentials must remain intact.
+This supersedes the earlier old-data-export blocker below. Existing Admin/TOTP
+were owner-confirmed configured; the reviewed disposable reinitialization creates
+new independent operator credentials/factor in the local macOS Keychain via real
+Kuma setup/TOTP APIs, without bypassing authentication. Old-data backup is recorded
+OWNER_WAIVED_DISPOSABLE_DATA, never PASS. New actual live-data backup/restore remains
+an acceptance test after deployment.
+
+The optional same-container engine supervisor supports a clean-writer full-volume
+age export through the existing gateway, requiring owner Basic plus a separate
+operations capability. It adds no container/volume/endpoint. A fixed startup reset
+nonce is bound to this app and an on-volume completion marker prevents repetition.
+Local tests exercise real setup/TOTP/monitoring, one-shot reset, restart preservation,
+clean-writer encrypted export and independent local restored Kuma. No live update
+or reset has occurred at source freeze.
 The v0.20 image has not yet been applied. The existing v0.19 engine remains active.
 Use the final execution report for the exact candidate SHA/digests and local tests.
 
@@ -47,7 +66,7 @@ paid service to work around this boundary. A supported secure full-volume export
 from the owner/platform is required before app update. A Kuma settings export or
 local synthetic DR archive is not a full Bunny-source backup.
 
-## Owner steps, after source review
+## Historical pre-waiver owner steps (superseded for OLD disposable data)
 
 1. Confirm the existing Kuma admin and enable TOTP in the protected HTTPS owner UI.
    Run `python3 scripts/local/owner-live-check.py` directly in a trusted terminal;

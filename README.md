@@ -2,7 +2,8 @@
 > Owner: https://mc-b4n2u1709h.bunny.run/ · Demo target: /demo (pending deployment).
 > See [demo configuration](docs/DEMO_MODE.md), [live gates](docs/BUNNY_LIVE_ACCEPTANCE_REPORT.md)
 > and [local release/rollback](docs/V020_RELEASE_AND_ROLLBACK.md). Live readiness is blocked
-> until owner TOTP verification, full Bunny-source backup/restore and approved app update.
+> until approved app update and real post-update gates. The owner has authorized
+> one scoped disposable-data reset; old-data export is no longer a deployment prerequisite.
 
 > **v0.19.0-rc.1 candidate — local Docker release.** Upstream pin: Uptime Kuma 2.5.7.
 > Live status: **DEPLOYMENT_BLOCKED**, no verified demo URL yet.

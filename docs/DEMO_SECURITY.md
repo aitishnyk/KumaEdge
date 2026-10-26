@@ -45,3 +45,28 @@ Bunny policy for the existing zone disables caching globally with TTL zero, reta
 cookies and WebSockets, forces HTTPS and overwrites Cache-Control with private,
 no-store. HSTS is only max-age=86400, enabled after validating actual TLS; there is
 no includeSubDomains/preload. Review private snapshots before any policy rollback.
+
+## Optional encrypted owner operations
+
+The existing engine container can run a supervisor that launches the unchanged
+Kuma server and a loopback-only operations listener on 3003. Only the original
+engine writes SQLite. The gateway has exact POST-only `/__kumaedge/backup` and
+controlled acceptance target routes; both owner Basic and a separate high-entropy
+operations token are required. Demo credentials/cookies never grant either.
+The token is stripped from normal owner proxy requests. Request bodies/transfer
+encoding are refused on operator routes. There is no file path, recipient,
+command or destination parameter supplied by HTTP input.
+
+The backup recipient is fixed in private deployment configuration; the decryption
+identity remains exclusively in local Keychain. Backup cleanly stops the writer,
+streams the complete data tree through the existing SHA-256-manifest age tool,
+restarts the same engine and returns only encrypted bytes with an integrity hash.
+One backup may run at a time; temporary encrypted files are removed after transfer.
+No plaintext archive or decryption key is created in Bunny. This operation briefly
+interrupts Kuma sessions; accepted reconnect/relogin tests are mandatory.
+
+A one-time disposable reset is opt-in, scoped to this exact app and local owner
+authorization. It removes only children of /app/data, never the mount itself.
+A persisted completion nonce prevents repeat resets on restart or later image
+updates. The old-data waiver is consumed by the approved initial update; it cannot
+silently waive backups for future data. No public HTTP reset endpoint exists.

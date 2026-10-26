@@ -99,3 +99,19 @@ variable "demo_environment" {
     error_message = "Only explicit demo environment keys are allowed."
   }
 }
+
+variable "engine_operations_enabled" {
+  type    = bool
+  default = false
+}
+variable "engine_environment" {
+  type      = map(string)
+  default   = {}
+  sensitive = true
+  validation {
+    condition = alltrue([for k in keys(var.engine_environment) : contains([
+      "KUMAEDGE_OPS_TOKEN", "KUMAEDGE_BACKUP_RECIPIENT", "KUMAEDGE_DISPOSABLE_RESET_NONCE", "KUMAEDGE_RESET_TARGET_APP_ID"
+    ], k)])
+    error_message = "Only explicit engine operations keys allowed."
+  }
+}

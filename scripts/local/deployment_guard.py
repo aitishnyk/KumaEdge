@@ -1,7 +1,7 @@
 """Allow image changes and gateway demo configuration on one existing app only."""
 import copy
 
-def validate_plan(plan,app_id,sha,digest):
+def validate_plan(plan,app_id,sha,digest,*,engine_operations=False,allow_disposable_reset=False):
     changes=plan.get('resource_changes',[])
     expected={'bunnynet_compute_container_app.kumaedge','bunnynet_compute_container_imageregistry.ghcr'}
     if {x['address'] for x in changes}!=expected:raise ValueError('Unexpected resource inventory')
@@ -31,6 +31,18 @@ def validate_plan(plan,app_id,sha,digest):
                 if new[key]!=(sha if key=='image_tag' else digest):raise ValueError('Image is not the tested release')
                 if old[key]!=new[key]:fields.append(old['name']+'.'+key)
                 old.pop(key);new.pop(key)
+            if old['name']=='kumaedge' and engine_operations:
+                if new.get('command')!='node' or new.get('arguments')!='/opt/kumaedge/engine-launch.cjs':raise ValueError('Unexpected engine command')
+                for key in ['command','arguments']:
+                    if old.get(key)!=new.get(key):fields.append('kumaedge.'+key)
+                    old.pop(key,None);new.pop(key,None)
+                old_env={e['name']:e['value'] for e in old['env']};new_env={e['name']:e['value'] for e in new['env']}
+                allowed={'KUMAEDGE_OPS_TOKEN','KUMAEDGE_BACKUP_RECIPIENT','KUMAEDGE_DISPOSABLE_RESET_NONCE','KUMAEDGE_RESET_TARGET_APP_ID'}
+                if any(k not in allowed and old_env.get(k)!=new_env.get(k) for k in set(old_env)|set(new_env)):raise ValueError('Unexpected engine environment')
+                nonce=new_env.get('KUMAEDGE_DISPOSABLE_RESET_NONCE')
+                if nonce and (not allow_disposable_reset or new_env.get('KUMAEDGE_RESET_TARGET_APP_ID')!=app_id):raise ValueError('Explicit scoped disposable-data reset authorization required')
+                fields.extend('kumaedge.env.'+k for k in sorted(set(old_env)|set(new_env)) if old_env.get(k)!=new_env.get(k))
+                old.pop('env');new.pop('env')
             if old['name']=='owner-gateway':
                 old_env={e['name']:e['value'] for e in old['env']};new_env={e['name']:e['value'] for e in new['env']}
                 if old_env.get('KUMAEDGE_FRONT_DOOR_PASSWORD')!=new_env.get('KUMAEDGE_FRONT_DOOR_PASSWORD'):raise ValueError('Owner credential rotation forbidden')

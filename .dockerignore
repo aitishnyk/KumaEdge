@@ -26,3 +26,6 @@ infra
 !scripts/demo-mode.cjs
 !scripts/demo-assets
 !scripts/demo-assets/**
+
+!scripts/engine-launch.cjs
+!scripts/volume-backup.py

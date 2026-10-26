@@ -25,6 +25,16 @@ resource "bunnynet_compute_container_app" "kumaedge" {
     image_digest      = var.image_digest == "" ? null : var.image_digest
     image_pull_policy = "IfNotPresent"
 
+    command   = var.engine_operations_enabled ? "node" : null
+    arguments = var.engine_operations_enabled ? "/opt/kumaedge/engine-launch.cjs" : null
+    dynamic "env" {
+      for_each = nonsensitive(toset(keys(var.engine_environment)))
+      content {
+        name  = env.value
+        value = var.engine_environment[env.value]
+      }
+    }
+
     # A health probe must not depend on having an admin login session.
     readiness_probe {
       type              = "http"

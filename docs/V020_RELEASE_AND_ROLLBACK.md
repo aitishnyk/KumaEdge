@@ -40,3 +40,23 @@ requiring the endpoint name/type/port and existing computed Pull Zone ID to rema
 identical. Every other endpoint field is compared. The existing endpoint ID and
 hostname must be checked again against Bunny immediately before and after apply;
 this computed unknown alone is not evidence of a replacement or a new Pull Zone.
+
+## Owner-authorized disposable test initialization
+
+The owner subsequently authorized discarding only the contents of the existing
+5GB /app/data volume. The old-data-export gate is waived for this specific initial
+update and recorded separately from PASS. The authorization binds app ID, volume
+ID, old image digest and one reset nonce; it is consumed after apply. Container
+count, actual volume and endpoint IDs remain pinned. The only additional allowed
+main-container changes are the fixed engine supervisor command and its explicit
+operations/recipient/reset environment keys. Existing owner gateway credentials
+and infrastructure state are preserved. Future updates require a real backup.
+
+After the human approves the exact reviewed image/config/reset plan in the local
+terminal, run `python3 scripts/local/live-acceptance.py`. This waits for the actual
+candidate OCI digest, initializes the disposable dataset through genuine Kuma
+setup and TOTP APIs, keeps new owner/factor secrets in Keychain, creates three
+explicit acceptance monitors/public labels, checks public demo isolation and
+WebSocket reconnect, waits with operator clients closed, exports/locally restores
+the full actual Bunny volume, and checks an agreed same-volume app restart.
+External notification receipts remain NOT_VERIFIED without an authorized channel.

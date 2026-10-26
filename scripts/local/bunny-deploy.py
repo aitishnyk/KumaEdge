@@ -40,6 +40,11 @@ for name in ['TF_LOG','TF_LOG_PATH']:env.pop(name,None)
 env.update(BUNNYNET_API_KEY=key,TF_VAR_ghcr_username=registry['Username'],TF_VAR_ghcr_read_token=registry['Secret'],TF_VAR_image_tag=sha,TF_VAR_image_digest=evidence['images']['main']['digest'],TF_VAR_front_door_password=password_path.read_text(),TF_VAR_region='DE',TF_VAR_volume_gb='5')
 demo_path=deployment/'demo.private.json'
 if demo_path.exists():env['TF_VAR_demo_environment']=demo_path.read_text()
+engine_path=deployment/'engine.private.json'
+if engine_path.exists():env.update(TF_VAR_engine_environment=engine_path.read_text(),TF_VAR_engine_operations_enabled='true')
+waiver_path=deployment/'disposable-data-authorization.private.json'
+waiver=json.loads(waiver_path.read_text()) if waiver_path.exists() else {}
+waived=waiver.get('consumed') is False and waiver.get('app_id')==deployment_id and waiver.get('volume_id')=='117a1d40-18e4-4041-b8f7-57e2603cd32a' and waiver.get('old_data_retention_required') is False and waiver.get('allow_contents_reset_if_necessary') is True
 registry.clear();key=None
 apps=json.loads(run('bunny','api','GET','/mc/apps'))
 if not isinstance(apps,dict) or apps.get('cursor'):raise SystemExit('Complete app reconciliation required')
@@ -71,11 +76,15 @@ def terraform(*args,output=None):
 terraform('init','-reconfigure','-input=false','-backend-config=path='+str(state),output=directory/'bunny-deploy-init.private.log')
 if sys.argv[1]=='plan':
     live_config_hash=live_identity()
+    if waived:
+        current=json.loads(run('bunny','api','GET','/mc/apps/'+deployment_id))
+        if any(c['imageDigest']!=waiver.get('authorized_old_image_digest') for c in current['containerTemplates']):raise SystemExit('Disposable old-data waiver does not match current live images')
+        if not engine_path.exists() or json.loads(engine_path.read_text()).get('KUMAEDGE_DISPOSABLE_RESET_NONCE')!=waiver.get('authorized_reset_nonce'):raise SystemExit('Disposable reset nonce changed after owner authorization')
     terraform('plan','-input=false','-no-color','-out='+str(plan),output=log)
     data=json.loads(terraform('show','-json',str(plan)))
-    try:changed_fields=validate_plan(data,deployment_id,sha,evidence['images']['main']['digest'])
+    try:changed_fields=validate_plan(data,deployment_id,sha,evidence['images']['main']['digest'],engine_operations=engine_path.exists(),allow_disposable_reset=bool(waiver.get('authorized_reset_nonce')) and engine_path.exists() and json.loads(engine_path.read_text()).get('KUMAEDGE_DISPOSABLE_RESET_NONCE')==waiver.get('authorized_reset_nonce'))
     except ValueError as error:plan.unlink();raise SystemExit(str(error))
-    summary={'sha':sha,'plan_sha256':hashlib.sha256(plan.read_bytes()).hexdigest(),'region':'DE','volume_gb':5,'resources':[{ 'address':c['address'],'actions':c['change']['actions']} for c in data.get('resource_changes',[])], 'cost_scenario_usd_month':5.61,'cost_assumptions':'730h at sustained 0.1 CPU and 1GB total RAM + 5GB volume; CDN traffic, overhead and taxes extra; not a spending cap','endpoint':'CDN HTTPS -> protected owner gateway :3002 -> original Kuma :3001','apply':'NOT_RUN','allowed_changed_fields':changed_fields,'new_paid_resources':0,'live_config_sha256':live_config_hash,'deployment_id':deployment_id,'state_sha256':hashlib.sha256(state.read_bytes()).hexdigest()}
+    summary={'sha':sha,'plan_sha256':hashlib.sha256(plan.read_bytes()).hexdigest(),'region':'DE','volume_gb':5,'resources':[{ 'address':c['address'],'actions':c['change']['actions']} for c in data.get('resource_changes',[])], 'cost_scenario_usd_month':5.61,'cost_assumptions':'730h at sustained 0.1 CPU and 1GB total RAM + 5GB volume; CDN traffic, overhead and taxes extra; not a spending cap','endpoint':'CDN HTTPS -> protected owner gateway :3002 -> original Kuma :3001','apply':'NOT_RUN','allowed_changed_fields':changed_fields,'new_paid_resources':0,'old_data_backup_gate':'OWNER_WAIVED_DISPOSABLE_DATA' if waived else 'REQUIRED','reset_contents_authorized':waived,'live_config_sha256':live_config_hash,'deployment_id':deployment_id,'state_sha256':hashlib.sha256(state.read_bytes()).hexdigest()}
     (directory/'bunny-plan-summary.json').write_text(json.dumps(summary,indent=2)+'\n')
     print(json.dumps(summary,indent=2));print('Private full plan:',log)
 else:
@@ -84,12 +93,13 @@ else:
     if hashlib.sha256(plan.read_bytes()).hexdigest()!=summary['plan_sha256']:raise SystemExit('Reviewed plan changed')
     if hashlib.sha256(state.read_bytes()).hexdigest()!=summary['state_sha256']:raise SystemExit('State changed; generate a new reviewed plan')
     if live_identity()!=summary['live_config_sha256']:raise SystemExit('Live configuration changed after plan; re-plan required')
-    receipt=deployment/'live-backup-restore-receipt.private.json'
-    if not receipt.exists():raise SystemExit('Verified full Bunny-source backup and local isolated restore receipt required before updating')
-    backup=json.loads(receipt.read_text())
-    if backup.get('app_id')!=deployment_id or backup.get('BUNNY_SOURCE_FULL_BACKUP')!='PASS' or backup.get('LOCAL_ISOLATED_RESTORE')!='PASS':raise SystemExit('Bunny backup/restore gate is not PASS')
-    archive=pathlib.Path(backup.get('encrypted_archive',''))
-    if not archive.is_file() or hashlib.sha256(archive.read_bytes()).hexdigest()!=backup.get('sha256'):raise SystemExit('Backup archive missing or changed')
+    if not waived:
+        receipt=deployment/'live-backup-restore-receipt.private.json'
+        if not receipt.exists():raise SystemExit('Verified full Bunny-source backup and local isolated restore receipt required before updating')
+        backup=json.loads(receipt.read_text())
+        if backup.get('app_id')!=deployment_id or backup.get('BUNNY_SOURCE_FULL_BACKUP')!='PASS' or backup.get('LOCAL_ISOLATED_RESTORE')!='PASS':raise SystemExit('Bunny backup/restore gate is not PASS')
+        archive=pathlib.Path(backup.get('encrypted_archive',''))
+        if not archive.is_file() or hashlib.sha256(archive.read_bytes()).hexdigest()!=backup.get('sha256'):raise SystemExit('Backup archive missing or changed')
     print(log.read_text());print(json.dumps(summary,indent=2))
     print('PAID resources. CPU $0.02/core-hour consumed; RAM $0.005/GB-hour; volume $0.10/GB/month. CDN traffic and taxes additional. No fixed spending cap.')
     confirmation=input('Type APPLY PAID KUMAEDGE '+sha[:12]+' to authorize this exact plan: ')
@@ -97,5 +107,7 @@ else:
     if run('git','rev-parse','HEAD')!=sha or run('git','status','--porcelain','--untracked-files=all'):raise SystemExit('Source changed during approval')
     terraform('apply','-input=false','-no-color',str(plan),output=directory/'bunny-apply.private.log')
     live_identity()
+    if waived:
+        waiver['consumed']=True;waiver['applied_sha']=sha;waiver_path.write_text(json.dumps(waiver,indent=2))
     state.chmod(0o600)
     print('Apply requested. Live TLS/cache/WebSocket, 2FA, notifications and Bunny restore remain mandatory; inspect private state and outputs.')

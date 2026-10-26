@@ -35,3 +35,11 @@ class DeploymentGuardTests(unittest.TestCase):
   self.assertEqual(len(m.validate_plan(p,'existing','sha','digest')),5)
   c['after']['container'][1]['endpoint'][0]['cdn'][0]['pullzone_id']=None
   with self.assertRaises(ValueError):m.validate_plan(p,'existing','sha','digest')
+
+ def test_disposable_engine_operations_require_scoped_authorization(self):
+  p=self.plan();a=p['resource_changes'][0]['change']['after']['container'][0]
+  a.update(command='node',arguments='/opt/kumaedge/engine-launch.cjs',env=[{'name':'KUMAEDGE_DISPOSABLE_RESET_NONCE','value':'nonce'},{'name':'KUMAEDGE_RESET_TARGET_APP_ID','value':'existing'}])
+  with self.assertRaises(ValueError):m.validate_plan(p,'existing','sha','digest',engine_operations=True)
+  self.assertIn('kumaedge.command',m.validate_plan(p,'existing','sha','digest',engine_operations=True,allow_disposable_reset=True))
+  a['env'][1]['value']='another-app'
+  with self.assertRaises(ValueError):m.validate_plan(p,'existing','sha','digest',engine_operations=True,allow_disposable_reset=True)
