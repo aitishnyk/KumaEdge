@@ -5,7 +5,7 @@ No live gate is claimed from local tests. See final execution evidence for local
 
 | Gate | Result |
 |---|---|
-| Registry publication / remote digest equality | NOT_RUN |
+| Registry publication / remote digest equality | NOT_RUN at source freeze; use final release manifest |
 | Paid Terraform plan / apply | NOT_RUN |
 | Bunny HTTPS / certificate / redirect | NOT_RUN |
 | Bunny polling / WebSocket | NOT_RUN |
@@ -18,7 +18,7 @@ Local runtime and recovery evidence is distinct from this table. Fixture webhook
 receipts prove only local delivery to the controlled receiver. An external provider
 needs owner-authorized credentials and destination supplied privately in a terminal.
 
-## Local audit results (separate from Bunny)
+## Local audit results at source freeze (separate from Bunny)
 
 | Test | Result |
 |---|---|
@@ -35,7 +35,7 @@ needs owner-authorized credentials and destination supplied privately in a termi
 | Trusted TLS/STARTTLS with real upstream implementation | PASS |
 | Untrusted self-signed certificate | Rejected as expected; #8019 compatibility change documented |
 | Encrypted complete-volume restore and isolated Kuma boot | PASS: users, monitors, history and extra files preserved |
-| Owner gateway HTTP/upgrade regression | PASS in Node; exact release Docker retest required |
+| Owner gateway HTTP/upgrade regression | PASS in Node and real Docker against Kuma |
 
 These are development audit results. Final release evidence must be generated
 again for the exact committed source and image IDs before publication. Tests that
