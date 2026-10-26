@@ -55,7 +55,7 @@ variable "image_name" {
 }
 
 variable "image_tag" {
-  description = "Exact, previously CI-tested 40-character Git SHA of a published image."
+  description = "Exact, locally verified 40-character Git SHA of a published image."
   type        = string
 
   validation {
@@ -142,7 +142,7 @@ variable "demo_environment" {
   sensitive   = true
   validation {
     condition = alltrue([for k in keys(var.demo_environment) : contains([
-      "KUMAEDGE_DEMO_ENABLED", "KUMAEDGE_DEMO_USERNAME", "KUMAEDGE_DEMO_PASSWORD_HASH",
+      "KUMAEDGE_DEMO_PUBLIC_CREDENTIALS", "KUMAEDGE_DEMO_ENABLED", "KUMAEDGE_DEMO_USERNAME", "KUMAEDGE_DEMO_PASSWORD_HASH",
       "KUMAEDGE_DEMO_SESSION_SECRET", "KUMAEDGE_DEMO_SESSION_TTL", "KUMAEDGE_DEMO_PUBLIC_TITLE",
       "KUMAEDGE_DEMO_STATUS_PAGE", "KUMAEDGE_DEMO_SERVICES", "KUMAEDGE_PUBLIC_ORIGIN"
     ], k)])

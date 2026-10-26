@@ -1,84 +1,14 @@
-> v0.19 candidate: releases now run locally on the Mac, without GitHub Actions.
-> See [Local Docker release](LOCAL_DOCKER_RELEASE.md), [upstream audit](UPSTREAM_VERSION_AUDIT.md),
-> [live deployment gates](BUNNY_LIVE_DEPLOYMENT.md) and [rollback](RELEASE_AND_ROLLBACK.md).
-> Historical CI/publisher instructions below are retained for older releases and are not current release prerequisites.
+# Bunny Terraform
 
-# Bunny provisioning without clicking through the console
+See [Installation](INSTALLATION.md) for the current new-install path. Standard module: [`infra/bunny`](../infra/bunny/main.tf), official BunnyWay/bunnynet provider pinned in the lockfile. It creates **two containers** (`kumaedge` internal 3001 and `owner-gateway` public 3002), one DE replica by default, one persistent volume and one CDN endpoint/Pull Zone. TLS/cache/WebSocket require live acceptance. The engine has no public endpoint.
 
-This directory contains reproducible infrastructure-as-code for the **managed** KumaEdge runtime. It uses the official Bunny Terraform provider's `compute_container_app` and `compute_container_imageregistry` resources. It provisions a single-region single-replica app, a persistent 5 GB default volume at `/app/data`, and a direct Anycast endpoint on port 3001. The default intentionally avoids a shared CDN cache in front of the admin application, but does not provision TLS.
+`terraform init`, `terraform fmt -check`, `terraform validate` and a reviewed saved plan run locally. All applies require a human; no GitHub Actions. Never apply a clean new-install state against an existing app. Existing apps require their own securely retained/imported state, confirmed app/volume/endpoint identities and an update-only plan. State contains credentials; do not publish it or its plan JSON. Preserve lineage, backups and rollback images.
 
-## Scope
+Reference deployment update tooling deliberately pins the maintainer app ID; it is not a generic installer. New users use `bash scripts/install-bunny.sh` in a fresh clone and their own account. The legacy `--with-backup` variant adds a third container and external storage; it is outside the two-container reference architecture and is not needed for full-volume exports.
 
-**NOT zero-server serverless:** Magic Containers have a continuously running paid container. `terraform apply` creates billable Bunny resources. CI validates only; CI does NOT apply or destroy infrastructure.
-
-**Prerequisites:** a Bunny account API key, a GitHub classic PAT with read-only packages permission for the relevant GHCR image, Terraform 1.5+, and a private persistent Terraform state backend or securely retained local state. Use a dedicated, access-controlled workstation or private backend. Never upload Terraform state to this public repository or unencrypted GitHub artifacts: the registry credential can be present in it.
-
-## Provisioning steps
-
-1. Confirm the published image exists at `ghcr.io/aitishnyk/kumaedge:<PUBLISHED_MAIN_SHA>` (or set another main-branch SHA that passed image publishing). If your image is private, the GHCR PAT must be able to pull it.
-2. Copy `infra/bunny/terraform.tfvars.example` to `infra/bunny/terraform.tfvars`. Configure `ghcr_username`, desired region and **the exact `image_tag` confirmed as published by GitHub Actions**. The bundled example deliberately does not include a working tag. If using `scripts/install-bunny.sh`, it asks for the SHA interactively (or uses `TF_VAR_image_tag`).
-3. Set `BUNNYNET_API_KEY` and `TF_VAR_ghcr_read_token` as private environment variables in your terminal or secure secret manager. Avoid command histories and logs. **Do not** put them in a public GitHub issue, PR, code, or chat.
-4. From `infra/bunny/`, run:
-
-   ```sh
-   terraform init
-   terraform fmt -check
-   terraform validate
-   terraform plan -out=kumaedge.tfplan
-   terraform apply kumaedge.tfplan
-   terraform output app_id
-   ```
-
-5. **Critical:** the Terraform module now uses Anycast as the default public endpoint to avoid a shared CDN cache. Anycast by itself does not establish HTTPS/TLS. **Do not enter admin credentials over HTTP.** Configure a trusted HTTPS-terminating front door (for example a properly hardened Bunny CDN Pull Zone with *all* authenticated, API, HTML and dynamic routes bypassing shared cache), then confirm the actual public address serves HTTPS, private/no-store responses and working Engine.IO polling/WebSocket. Bunny endpoint details and TLS depend on the live account. Never assume a passing Terraform plan provides a secure public website.
-6. After configuring an HTTPS hostname, run: `node scripts/check-production.mjs --url https://your-kumaedge-host.example`. This fails closed on missing explicit private/no-store cache policy, HTTP redirects and Engine.IO failures. It does not authenticate or inspect private content.
-7. You may set the **non-secret** `BUNNY_MC_APP_ID` GitHub Actions variable for read-only metadata checks. **Never put your Bunny account key in GitHub repository or production environment secrets.** Future updates must run locally using private Terraform state, reviewed plans and explicit approval. See [local-only credentials](BUNNY_LOCAL_CREDENTIALS.md).
-8. Open the HTTPS URL and configure Uptime Kuma. Add a monitor and alert channel. Verify an actual down/recovery incident, restart the Bunny app, ensure all data is still available, and confirm checks continue while your browser is closed.
-9. Maintain encrypted/offsite backups of `/app/data`, and preserve the Terraform state. Do not run `terraform destroy` on real customer data.
-
-## Guarantees, limitations and rollback
-
-- One static region, exactly one replica and a persistent volume. No automatic horizontal scaling with SQLite.
-- The `prevent_destroy` lifecycle rule protects the app against accidental Terraform deletion/replacement. The registry resource can still be changed, so always review the plan.
-- **Existing Terraform installs:** changing an endpoint from CDN to Anycast may recreate the public endpoint and change the hostname. Review the plan and do not apply this change blindly.\n- This is a **new-install** module, not an import/migration tool for a pre-existing Magic Containers app. Do not apply it against an app you've already created manually without first properly importing it into your state.
-- Switching the `image_tag` requires a successful build and acceptance; the GitHub workflow is now read-only and never updates Bunny. Use your retained private Terraform state and a carefully reviewed local plan for changes to an existing app.
-- Anycast avoids automatic content caching; HTTPS still needs to be provided separately. Sessions, security, cache rules of any added proxy, persistence after restart, and alert delivery need live acceptance. GitHub CI cannot certify them without access to your account.
-- Public forks must supply their own Bunny account, registry credentials and image tags. Forking this repository does **not** grant access to the publisher's Bunny resources.
-
-Official references:
+API, registry and technical provider URLs remain direct official destinations:
 - https://registry.terraform.io/providers/BunnyWay/bunnynet/latest/docs/resources/compute_container_app
 - https://registry.terraform.io/providers/BunnyWay/bunnynet/latest/docs/resources/compute_container_imageregistry
 - https://docs.bunny.net/docs/magic-containers-how-to-deploy-your-app
 
-**Note:** A Git commit in `main` is not automatically a published container image. Only use SHA tags whose **Bunny Managed - build, test and publish** workflow on main finished successfully. The installer validates SHA syntax but cannot certify private registry visibility until Bunny pulls it.
-
-## Release eligibility at deployment time
-
-The read-only GitHub release workflow checks that the selected SHA belongs to `main` **and** has a completed, successful official image-publishing GitHub Actions push run. Both GHCR packages must be available before a separately approved **local** Bunny update. A SHA with merely passing tests or a locally built Docker image is not accepted. The installer remains interactive and requires the operator to select a previously published SHA; its syntax check is not an online provenance verification. Never place Terraform state or Bunny secrets in public CI.
-
-## v0.16 — Optional OCI digest pins for new installations
-
-The existing pinned BunnyWay/bunnynet v0.19.1 provider exposes optional `container.image_digest` alongside mandatory `image_tag`. The standard Terraform root now accepts `TF_VAR_image_digest`; the backup variant also accepts `TF_VAR_backup_image_digest`. Both values are lowercase `sha256:` followed by 64 hex characters. They default to empty (the original tag-only behavior) for backwards compatibility.
-
-For a **new deployment**, use only digests taken from the unexpired `kumaedge-oci-digests-<FULL_MAIN_SHA>` artifact of the official successful main-branch publisher, and independently compare them with the corresponding GHCR manifests. Do not substitute a digest from an unreviewed commit or a moving tag. The `--with-backup` variant rejects partial pinning, so both main and backup digests must be provided together, or neither.
-
-Set the optional variables privately in your trusted terminal, then use the existing `bash scripts/install-bunny.sh` or `bash scripts/install-bunny.sh --with-backup` interactive installer and review its complete **paid** Terraform plan. The plan must show exactly the digest(s) from the publisher evidence. No examples embed a real hash or any credential.
-
-**Important limits:** This does not automatically fetch/verify the publisher artifact, retrofit existing Terraform state or upgrade the manual `container-update-image` action (which still operates by tag). Provider schema support is verified, but **Bunny runtime enforcement of the digest is untested** without a real paid test instance; verify the created template, running pod, restart and rollback before declaring digest-immutable production. Never silently apply an image_digest edit to an existing deployment.
-
-## v0.17 — Fail-closed publisher evidence preflight for digest-pinned installs
-
-When setting `TF_VAR_image_digest` (and `TF_VAR_backup_image_digest` for `--with-backup`), the interactive installer now **requires the full absolute path** of the downloaded `evidence.json` from the successful, official main-branch `kumaedge-oci-digests-<SHA>` GitHub Actions artifact:
-
-```sh
-export KUMAEDGE_RELEASE_EVIDENCE_FILE="$HOME/Downloads/kumaedge-release/evidence.json"
-# Also set TF_VAR_image_tag and the exact corresponding digest variable(s).
-bash scripts/install-bunny.sh --with-backup
-```
-
-The installer requires Docker CLI with Buildx and Node.js 20+ **only when digest pinning is selected**. It logs into GHCR using the supplied existing read-only packages token, placing temporary Docker credentials in a private throwaway configuration directory instead of the user's persistent Docker config. It verifies that the artifact matches the selected repository and SHA, confirms both actual GHCR manifest digests still equal the publisher evidence, and confirms selected Terraform digest pins equal the artifact. Any mismatch or inaccessible registry stops **before** Terraform initialization, the paid plan, and apply. Temporary registry login data is removed even on failure.
-
-The artifact **must** originate from the reviewed main publisher run; the script checks its content and the current registry state but cannot independently attest who uploaded a local JSON file. Keep its provenance chain intact. Without a digest pin, existing tag-only installs remain compatible and are **not** called digest-verified. No new account provisioning, Terraform apply or Bunny live validation occurs as part of this check.
-
-## v0.18 — Account key isolation
-
-The Bunny Account API Key is for **local interactive provisioning only**. It is never installed as a public GitHub repository/environment secret. The manual workflow verifies publisher and GHCR digests only. Existing deployments must be updated with retained Terraform state and a manually reviewed local plan. See [BUNNY_LOCAL_CREDENTIALS.md](BUNNY_LOCAL_CREDENTIALS.md).
+[Deploy on Bunny.net](https://bunny.net?ref=4mvi9kc9vn) is an affiliate link that may support this project. Billing is usage-based; review current prices and your plan. No fixed spending cap is implemented.

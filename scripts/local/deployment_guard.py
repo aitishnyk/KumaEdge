@@ -46,7 +46,7 @@ def validate_plan(plan,app_id,sha,digest,*,engine_operations=False,allow_disposa
             if old['name']=='owner-gateway':
                 old_env={e['name']:e['value'] for e in old['env']};new_env={e['name']:e['value'] for e in new['env']}
                 if old_env.get('KUMAEDGE_FRONT_DOOR_PASSWORD')!=new_env.get('KUMAEDGE_FRONT_DOOR_PASSWORD'):raise ValueError('Owner credential rotation forbidden')
-                allowed={'KUMAEDGE_DEMO_ENABLED','KUMAEDGE_DEMO_USERNAME','KUMAEDGE_DEMO_PASSWORD_HASH','KUMAEDGE_DEMO_SESSION_SECRET','KUMAEDGE_DEMO_SESSION_TTL','KUMAEDGE_DEMO_PUBLIC_TITLE','KUMAEDGE_DEMO_STATUS_PAGE','KUMAEDGE_DEMO_SERVICES','KUMAEDGE_PUBLIC_ORIGIN'}
+                allowed={'KUMAEDGE_DEMO_PUBLIC_CREDENTIALS','KUMAEDGE_DEMO_ENABLED','KUMAEDGE_DEMO_USERNAME','KUMAEDGE_DEMO_PASSWORD_HASH','KUMAEDGE_DEMO_SESSION_SECRET','KUMAEDGE_DEMO_SESSION_TTL','KUMAEDGE_DEMO_PUBLIC_TITLE','KUMAEDGE_DEMO_STATUS_PAGE','KUMAEDGE_DEMO_SERVICES','KUMAEDGE_PUBLIC_ORIGIN'}
                 if any(k not in allowed and old_env.get(k)!=new_env.get(k) for k in set(old_env)|set(new_env)):raise ValueError('Unexpected gateway environment change')
                 fields.extend('owner-gateway.env.'+k for k in sorted(set(old_env)|set(new_env)) if old_env.get(k)!=new_env.get(k))
                 old.pop('env');new.pop('env')

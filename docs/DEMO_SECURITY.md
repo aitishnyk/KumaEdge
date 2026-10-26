@@ -18,10 +18,7 @@ Login requires a signed expiring double-submit token and an exact configured
 Origin. KDF work uses asynchronous scrypt with fixed N=16384, r=8, p=1, a random
 128-bit salt and 256-bit result; parameter injection is rejected. Comparisons are
 constant-time over fixed-size digests. Passwords and request bodies have limits.
-One KDF operation runs at a time. Ten POST attempts per trusted socket peer per
-minute are permitted; at most 1024 peers are retained. Forwarded IP headers cannot
-reset this limit. Behind Bunny, a peer can be a shared CDN node, so the conservative
-limit can affect multiple users. There is no per-user-IP claim or unbounded map.
+Private mode runs one KDF at a time and permits ten POST attempts per trusted peer per minute (at most 1024 peers). Public opt-in mode validates the fixed demo/demo verifier once at startup and compares the known public password in constant time without per-request KDF work. It uses a bounded global token bucket (100 burst, 20/s refill), avoiding private-mode lockout of ordinary users behind a shared CDN IP. Forwarded IP headers are never trusted. Both modes retain body limits, CSRF and the 1000-session capacity. Public credentials do not protect confidentiality; the strict read-only allowlist is the boundary.
 
 The adapter can fetch only two fixed local public-status API routes using a
 validated deployment-time slug. It has a timeout, redirect prohibition, 2 MB body

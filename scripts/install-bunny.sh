@@ -29,6 +29,11 @@ else
 fi
 cd "$root"
 umask 077
+# New-install only: never reuse or overwrite retained existing deployment state.
+if [[ -s "$root/terraform.tfstate" ]]; then
+  echo "Existing Terraform state found; use the reviewed upgrade workflow, not the new installer." >&2
+  exit 2
+fi
 
 echo "KumaEdge — Bunny Magic Containers installer"
 echo "This deploys PAID single-region compute and 5 GB persistent storage."
@@ -70,7 +75,7 @@ if [[ -z "$BUNNYNET_API_KEY" || -z "$TF_VAR_ghcr_read_token" || -z "$TF_VAR_ghcr
   exit 2
 fi
 if [[ "$backup_mode" == "true" ]]; then
-  echo "Optional backup sidecar adds a second container and needs an EXISTING private Bunny Storage Zone."
+  echo "Optional legacy backup sidecar adds a third container and needs an EXISTING private Bunny Storage Zone."
   echo "Only SQLite is backed up online. All Terraform state and credentials remain your responsibility."
   if [[ -z "${TF_VAR_backup_storage_zone:-}" ]]; then
     read -r -p "Existing private Bunny Storage Zone name: " TF_VAR_backup_storage_zone
@@ -129,7 +134,7 @@ if [[ -n "${TF_VAR_image_digest:-}" || -n "${TF_VAR_backup_image_digest:-}" ]]; 
 fi
 
 plan="$(mktemp "$root/.kumaedge-plan.XXXXXXXX")"
-terraform init -input=false
+terraform init -reconfigure -input=false -backend-config="path=$root/terraform.tfstate"
 terraform fmt -check -recursive
 terraform validate -no-color
 terraform plan -input=false -out="$plan"
@@ -147,6 +152,6 @@ echo
 echo "Provision request completed. Bunny live acceptance is still required."
 terraform output app_id
 terraform output next_steps
-echo "Set BUNNY_MC_APP_ID in the GitHub repository's Actions variables."
+echo "Record the app ID privately with your local Terraform state; GitHub Actions are not used."
 echo "Verify HTTPS + zero shared caching of authenticated routes + WebSocket."
 echo "Then initialize 2FA and monitor recovery tests; preserve state and backups."

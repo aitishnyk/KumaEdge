@@ -43,3 +43,7 @@ class DeploymentGuardTests(unittest.TestCase):
   self.assertIn('kumaedge.command',m.validate_plan(p,'existing','sha','digest',engine_operations=True,allow_disposable_reset=True))
   a['env'][1]['value']='another-app'
   with self.assertRaises(ValueError):m.validate_plan(p,'existing','sha','digest',engine_operations=True,allow_disposable_reset=True)
+
+ def test_public_demo_optin_allowed_without_owner_or_engine_changes(self):
+  p=self.plan();p['resource_changes'][0]['change']['after']['container'][1]['env'].append({'name':'KUMAEDGE_DEMO_PUBLIC_CREDENTIALS','value':'true'})
+  self.assertIn('owner-gateway.env.KUMAEDGE_DEMO_PUBLIC_CREDENTIALS',m.validate_plan(p,'existing','sha','digest'))

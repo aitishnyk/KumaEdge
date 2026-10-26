@@ -1,0 +1,19 @@
+/* KumaEdge Obsidian Cloud — original MIT theme for Uptime Kuma 2.5.7.
+   Paste into Status Page > Edit > Custom CSS; select Dark and Save.
+   Scoped styling only; never hide outages, notices or upstream attribution. */
+body.dark { background: #080E17; color: #F0F6FC; }
+.dark .container { max-width: 1140px; }
+.dark .shadow-box { background: #121C29 !important; border: 1px solid #26384B;
+ border-radius: 18px; box-shadow: 0 12px 32px #0003; }
+.dark .overall-status { background: #121C29 !important; border-radius: 18px; }
+.dark .bg-primary { background-color: #52D9B5 !important; color: #080E17; }
+.dark a { color: #52D9B5; }
+.dark h1, .dark h2, .dark h3 { color: #F0F6FC; letter-spacing: -.025em; }
+.dark .monitor-list .item { border-radius: 12px; padding: 16px 12px; }
+.dark .badge { border-radius: 8px; }
+.dark .bg-danger { background-color: #EE7788 !important; color: #080E17; }
+.dark .bg-warning { background-color: #F3CA74 !important; color: #080E17; }
+@media(max-width: 600px) { .dark .container { padding: 16px; }
+ .dark h1 { font-size: clamp(1.6rem,7vw,2.5rem); }
+ .dark .monitor-list .item { padding: 12px 8px; } }
+@media(prefers-reduced-motion: reduce) { .dark * { scroll-behavior: auto !important; } }
