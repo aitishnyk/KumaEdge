@@ -44,12 +44,38 @@ Keychain. The existing gateway credential was preserved.
   File content digests were correct; the previous failure was a verifier mode
   mismatch. Regression tests cover special modes and permission tampering.
 
-Same-volume application restart and post-restart session/data checks are still
-pending at this source freeze. External delivery receipts are NOT_VERIFIED because
-no authorized notification destination is configured. Bunny-to-Bunny restore is
-NOT_RUN: another paid app/volume is forbidden. Mobile-browser layout and the full
-public one-hour session-expiry duration are NOT_RUN; local TTL enforcement passes.
-Use the final execution report for the final candidate SHA, OCI digests and gates.
+## Final accepted release
+
+The owner subsequently approved the image-only 5c2bd70 plan in the trusted local
+terminal. Terraform apply completed successfully. Both actual running containers
+use `ghcr.io/aitishnyk/kumaedge:5c2bd701758944b609dfd588ed12b3f97624c51b` at
+`sha256:55b4f8a88396fa6b75163ee41c94c2cf0926e60a46cff8986913eb4ea3c99c48`.
+The paired backup artifact digest is
+`sha256:0b2c35cba40672523730217e39a701257ec9ef14ae7fdb561b0f4a044c881d22`.
+Final source freeze had 89 Node and 51 Python tests without skips; both locally
+built Linux/AMD64 images were published and independently pulled/verified.
+Later documentation/operator-harness commits do not change runtime image source.
+
+Final actual Bunny acceptance: OWNER/TOTP/logout/relogin, three real monitors,
+controlled DOWN/UP, 105 seconds with operator clients closed and growing history,
+DEMO login/data/isolation/CSRF/tamper/logout, HTTPS/polling/WebSocket/reconnect,
+CDN private/no-store/no-shared-cache, full-volume encrypted backup and independent
+local restore all PASS. Same existing volume AND volume instance, owner/TOTP and
+history survive the final application restart. The formerly valid DEMO cookie is
+rejected after restart; a new login succeeds. Public extra method/path/header/
+SSRF/filesystem isolation matrix and real browser login/dashboard/logout PASS.
+Final Terraform plan: no changes for the app and registry. New paid resources: 0.
+
+The first a315114 restart needed a same-configuration deploy recovery and exceeded
+the old 90-poll harness limit. The final 5c2bd70 acceptance completed with a larger
+bounded wait and retained the private pre-restart cookie. The repository harness
+now includes those already exercised operator-only changes.
+
+Final readiness: **DEMO_READY**, not PRODUCTION_READY. External delivery receipts
+are NOT_VERIFIED because the owner confirmed there is no notification channel.
+Bunny-to-Bunny restore is NOT_RUN because additional paid resources are forbidden.
+Mobile-browser layout and the full public one-hour TTL duration remain NOT_RUN;
+local server-enforced TTL regression passes. No unexecuted test is counted PASS.
 
 The paired backup OCI image is a release artifact, not a third cloud container.
 No GitHub Actions were used. Repository Actions remain disabled.

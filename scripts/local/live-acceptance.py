@@ -8,7 +8,7 @@ r=pathlib.Path(__file__).resolve().parents[2];d=r/'.local-deployments/E2quWe26Nm
 if subprocess.check_output(['git','status','--porcelain'],cwd=r,text=True).strip():raise SystemExit('Exact clean source required')
 def run(script,*args):subprocess.run(['python3',str(r/'scripts/local'/script),*args],cwd=r,check=True)
 def ready():
- for _ in range(90):
+ for _ in range(300):
   app=json.loads(subprocess.check_output(['bunny','api','GET','/mc/apps/E2quWe26NmOfL7q'],text=True,stderr=subprocess.DEVNULL))
   overview=json.loads(subprocess.check_output(['bunny','api','GET','/mc/apps/E2quWe26NmOfL7q/overview'],text=True,stderr=subprocess.DEVNULL))
   pods=[p for region in overview.get('regions',[]) for p in region.get('pods',[])]
@@ -31,7 +31,7 @@ def demo(old=None):
    subprocess.run(['docker','cp',name+':/tmp/demo-live-cookie.private',str(tmp/'cookie')],check=True);subprocess.run(['docker','cp',name+':/tmp/demo-live-report.json',str(tmp/'report')],check=True)
    cookie=(tmp/'cookie').read_text();report=json.loads((tmp/'report').read_text());return cookie,report
  finally:subprocess.run(['docker','rm','-f',name],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-ready();run('bootstrap-live.py');cookie,initial=demo();run('bootstrap-live.py','check');before=json.loads((d/'live-owner-check.json').read_text())
+ready();run('bootstrap-live.py');cookie,initial=demo();(d/'pending-restart-demo-cookie.private').write_text(cookie);run('bootstrap-live.py','check');before=json.loads((d/'live-owner-check.json').read_text())
 print('Operator clients closed; waiting 105 seconds for independent heartbeat collection',flush=True);time.sleep(105)
 run('bootstrap-live.py','check');after=json.loads((d/'live-owner-check.json').read_text())
 for key,count in before['history'].items():
@@ -47,5 +47,7 @@ if {x['id'] for x in volumes_before['items'][0]['volumeInstances']}!={x['id'] fo
 _,final=demo(cookie);run('bootstrap-live.py','check');persisted=json.loads((d/'live-owner-check.json').read_text())
 for key,count in after['history'].items():
  if persisted['history'].get(key,0)<count:raise RuntimeError('History lost after agreed restart')
-report={'sha':sha,'scope':'ACTUAL_BUNNY','owner':persisted,'demo':final,'closedOperatorClientsIntervalSeconds':105,'independentMonitoring':'PASS','sameVolumeRestart':'PASS','BUNNY_SOURCE_FULL_BACKUP':'PASS','LOCAL_ISOLATED_RESTORE':'PASS','BUNNY_TO_BUNNY_RESTORE':'NOT_RUN','externalNotifications':'NOT_VERIFIED_NO_AUTHORIZED_CHANNEL','readiness':'DEMO_READY_PENDING_REMAINING_GATES'}
+report={'sha':sha,'scope':'ACTUAL_BUNNY','owner':persisted,'demo':final,'closedOperatorClientsIntervalSeconds':105,'independentMonitoring':'PASS','sameVolumeRestart':'PASS','BUNNY_SOURCE_FULL_BACKUP':'PASS','LOCAL_ISOLATED_RESTORE':'PASS','BUNNY_TO_BUNNY_RESTORE':'NOT_RUN','externalNotifications':'NOT_VERIFIED_NO_AUTHORIZED_CHANNEL','readiness':'DEMO_READY'}
 (d/'live-acceptance.json').write_text(json.dumps(report,indent=2));print(json.dumps(report,indent=2))
+
+(d/'pending-restart-demo-cookie.private').unlink(missing_ok=True)

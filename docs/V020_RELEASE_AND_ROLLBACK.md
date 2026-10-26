@@ -7,12 +7,14 @@ Publication must preserve paired immutable source-SHA tags for main and backup,
 verify remote OCI digests and pull the exact images back for identity comparison.
 The backup image is not deployed as a third cloud container.
 
-The live app still uses the v0.19 paired release until an approved update passes
-its independent backup gate. The immutable main reference is
-`ghcr.io/aitishnyk/kumaedge:21febcb9e2bdd4bb88f3d374b9dc59d451e80d01`
-at `sha256:23ba069c5e5b2233a9c5df2aa62b7c9d681f4e135cc08024987b5652b0bec9e7`.
-Uptime Kuma stays pinned to 2.5.7; this candidate changes gateway/application
-configuration, not the engine version or intended database schema.
+The accepted live runtime image source is
+`5c2bd701758944b609dfd588ed12b3f97624c51b`, Uptime Kuma 2.5.7 unchanged.
+Main OCI digest: `sha256:55b4f8a88396fa6b75163ee41c94c2cf0926e60a46cff8986913eb4ea3c99c48`.
+Backup OCI digest: `sha256:0b2c35cba40672523730217e39a701257ec9ef14ae7fdb561b0f4a044c881d22`.
+The final docs/operator-harness commit can differ from this immutable image SHA;
+check the deployed source/digest evidence instead of assuming main HEAD is an image tag.
+Live owner/demo/transport/persistence and actual Bunny backup/local restore PASS.
+Readiness is DEMO_READY; external notifications are NOT_VERIFIED by owner choice.
 
 Never roll back an engine against a database migrated by a newer incompatible
 engine. Restore a verified pre-upgrade full-volume archive into a separate local

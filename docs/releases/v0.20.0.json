@@ -1,0 +1,55 @@
+{
+  "version": "0.20.0",
+  "runtime_source_sha": "5c2bd701758944b609dfd588ed12b3f97624c51b",
+  "upstream": "2.5.7",
+  "platform": "linux/amd64",
+  "main_digest": "sha256:55b4f8a88396fa6b75163ee41c94c2cf0926e60a46cff8986913eb4ea3c99c48",
+  "backup_digest": "sha256:0b2c35cba40672523730217e39a701257ec9ef14ae7fdb561b0f4a044c881d22",
+  "node_tests": 89,
+  "python_tests": 51,
+  "live": {
+    "sha": "5c2bd701758944b609dfd588ed12b3f97624c51b",
+    "scope": "ACTUAL_BUNNY",
+    "owner": {
+      "scope": "ACTUAL_BUNNY",
+      "owner": "PASS",
+      "totp": "PASS",
+      "monitoring": "PASS_PERSISTED",
+      "externalNotifications": "NOT_VERIFIED_NO_AUTHORIZED_CHANNEL",
+      "monitorCount": 3,
+      "history": {
+        "1": 36,
+        "2": 36,
+        "3": 100
+      }
+    },
+    "demo": {
+      "scope": "ACTUAL_BUNNY",
+      "demoLogin": "PASS",
+      "demoData": "PASS",
+      "demoIsolation": "PASS",
+      "csrf": "PASS",
+      "tamper": "PASS",
+      "logout": "PASS",
+      "websocketReconnect": "PASS",
+      "privateCDNCache": "PASS",
+      "staleSessionAfterRestart": "PASS",
+      "demoAbsoluteTTL": "LOCAL_REGRESSION_PASS_PUBLIC_DURATION_NOT_RUN",
+      "externalNotifications": "NOT_VERIFIED"
+    },
+    "closedOperatorClientsIntervalSeconds": 105,
+    "independentMonitoring": "PASS",
+    "sameVolumeRestart": "PASS",
+    "BUNNY_SOURCE_FULL_BACKUP": "PASS",
+    "LOCAL_ISOLATED_RESTORE": "PASS",
+    "BUNNY_TO_BUNNY_RESTORE": "NOT_RUN",
+    "externalNotifications": "NOT_VERIFIED_NO_AUTHORIZED_CHANNEL",
+    "readiness": "DEMO_READY_PENDING_REMAINING_GATES"
+  },
+  "readiness": "DEMO_READY",
+  "final_terraform": "NO_CHANGES",
+  "new_paid_resources": 0,
+  "browser_demo_login_dashboard_logout": "PASS",
+  "extra_public_security_matrix": "PASS",
+  "mobile_browser_layout": "NOT_RUN"
+}
