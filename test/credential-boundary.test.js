@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { readFileSync,readdirSync } from "node:fs";
 
 test("all public Github Actions workflows forbid account-level Bunny keys",()=>{
-  const dir=".github/workflows";
-  const workflows=readdirSync(dir).filter(x=>x.endsWith(".yml")||x.endsWith(".yaml"));
+  const dir="docs/legacy-workflows";
+  const workflows=readdirSync(dir).filter(x=>x.endsWith(".disabled"));
   assert.ok(workflows.length>=10);
   for(const name of workflows) {
     const content=readFileSync(dir+"/"+name,"utf8");

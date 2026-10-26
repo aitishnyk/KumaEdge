@@ -4,8 +4,8 @@ import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
 test("upstream digest watcher is review-only, validated, and has Issue fallback",()=>{
-  const script=readFileSync("scripts/watch-upstream-image.sh","utf8");
-  const syntax=spawnSync("bash",["-n","scripts/watch-upstream-image.sh"],{encoding:"utf8"});
+  const script=readFileSync("scripts/watch-upstream-image-legacy.sh","utf8");
+  const syntax=spawnSync("bash",["-n","scripts/watch-upstream-image-legacy.sh"],{encoding:"utf8"});
   assert.equal(syntax.status,0,syntax.stderr);
   assert.match(script,/docker buildx imagetools inspect/);
   assert.match(script,/sha256:\[a-f0-9\]\{64\}/);
@@ -16,7 +16,7 @@ test("upstream digest watcher is review-only, validated, and has Issue fallback"
 });
 
 test("upstream image review workflow never reads Bunny credentials",()=>{
-  const workflow=readFileSync(".github/workflows/upstream-image-watch.yml","utf8");
+  const workflow=readFileSync("docs/legacy-workflows/upstream-image-watch.yml.disabled","utf8");
   assert.match(workflow,/scripts\/watch-upstream-image\.sh/);
   assert.match(workflow,/workflow_dispatch:/);
   assert.match(workflow,/pull-requests: write/);

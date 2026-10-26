@@ -11,3 +11,12 @@ scripts/*
 *.md
 .env
 .env.*
+
+.local-release
+infra
+**/__pycache__
+**/*.tfstate*
+**/*.tfvars
+**/*.tfplan
+
+!scripts/front-door.cjs

@@ -1,3 +1,8 @@
+> v0.19 candidate: releases now run locally on the Mac, without GitHub Actions.
+> See [Local Docker release](LOCAL_DOCKER_RELEASE.md), [upstream audit](UPSTREAM_VERSION_AUDIT.md),
+> [live deployment gates](BUNNY_LIVE_DEPLOYMENT.md) and [rollback](RELEASE_AND_ROLLBACK.md).
+> Historical CI/publisher instructions below are retained for older releases and are not current release prerequisites.
+
 # KumaEdge Bunny Managed Installation
 
 Bunny Managed runs the **original Uptime Kuma v2** server, UI, scheduler, and notifications on paid Bunny Magic Containers. There is no self-managed VPS, but there is a persistent container and durable storage.

@@ -1,3 +1,8 @@
+> v0.19 candidate: releases now run locally on the Mac, without GitHub Actions.
+> See [Local Docker release](LOCAL_DOCKER_RELEASE.md), [upstream audit](UPSTREAM_VERSION_AUDIT.md),
+> [live deployment gates](BUNNY_LIVE_DEPLOYMENT.md) and [rollback](RELEASE_AND_ROLLBACK.md).
+> Historical CI/publisher instructions below are retained for older releases and are not current release prerequisites.
+
 # Bunny provisioning without clicking through the console
 
 This directory contains reproducible infrastructure-as-code for the **managed** KumaEdge runtime. It uses the official Bunny Terraform provider's `compute_container_app` and `compute_container_imageregistry` resources. It provisions a single-region single-replica app, a persistent 5 GB default volume at `/app/data`, and a direct Anycast endpoint on port 3001. The default intentionally avoids a shared CDN cache in front of the admin application, but does not provision TLS.

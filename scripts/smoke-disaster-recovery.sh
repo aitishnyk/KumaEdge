@@ -9,7 +9,7 @@ first_container="$id-first"
 second_container="$id-second"
 scratch="$(mktemp -d)"
 cleanup() {
-  docker rm -f "$first_container" "$second_container" >/dev/null 2>&1 || true
+  docker rm -f "$first_container" "$second_container" "$id-import" >/dev/null 2>&1 || true
   docker volume rm "$first_volume" "$second_volume" >/dev/null 2>&1 || true
   rm -rf -- "$scratch"
 }
@@ -42,22 +42,19 @@ start() {
 
 echo "Booting real source Uptime Kuma image with temporary named volume"
 start "$first_container" "$first_volume"
+docker cp scripts/local/runtime.cjs "$first_container:/app/kumaedge-acceptance.cjs" >/dev/null
+docker exec "$first_container" node /app/kumaedge-acceptance.cjs seed
 docker exec "$first_container" sh -c '
   test -s /app/data/kuma.db &&
   mkdir -p /app/data/kumaedge-dr-synthetic &&
   printf "recovery-sentinel\n" > /app/data/kumaedge-dr-synthetic/check.txt
 '
-docker rm -f "$first_container" >/dev/null
-
-original_owner="$(docker run --rm --user 0 --entrypoint sh \
-  -v "$first_volume:/volume:ro" "$image" \
-  -c 'stat -c "%u:%g" /volume/kuma.db')"
-[[ "$original_owner" =~ ^[0-9]+:[0-9]+$ ]] || { echo "Invalid database owner" >&2; exit 1; }
-
-# The sole SQLite writer has stopped; read a private export of its entire volume.
-docker run --rm --user 0 --entrypoint sh \
-  -v "$first_volume:/volume:ro" -v "$scratch/source:/export" "$image" \
-  -c "cp -a /volume/. /export/ && chown -R $(id -u):$(id -g) /export"
+original_owner="$(docker exec "$first_container" stat -c '%u:%g' /app/data/kuma.db)"
+[[ "$original_owner" =~ ^[0-9]+:[0-9]+$ ]] || { echo "Invalid database owner"; exit 1; }
+docker stop --time 30 "$first_container" >/dev/null
+# Copy the stopped writer's complete volume without host bind mounts.
+docker cp "$first_container:/app/data/." "$scratch/source" >/dev/null
+docker rm "$first_container" >/dev/null
 test -s "$scratch/source/kuma.db"
 
 python3 - "$scratch/source/kuma.db" <<'PY'
@@ -82,12 +79,17 @@ cmp "$scratch/source/kumaedge-dr-synthetic/check.txt" "$scratch/restored/kumaedg
 
 # Copy the independent verified restore into a NEW volume. UID/GID must be
 # adapted to the real image's database writer after offline restore.
-docker run --rm --user 0 --entrypoint sh \
-  -v "$second_volume:/volume" -v "$scratch/restored:/source:ro" "$image" \
-  -c "cp -a /source/. /volume/ && chown -R '$original_owner' /volume"
+helper="$id-import"
+docker create --name "$helper" --user 0 --entrypoint sh -v "$second_volume:/volume" "$image" -c "chown -R '$original_owner' /volume" >/dev/null
+docker cp "$scratch/restored/." "$helper:/volume" >/dev/null
+docker start -a "$helper"
+[[ "$(docker inspect -f '{{.State.ExitCode}}' "$helper")" == 0 ]]
+docker rm "$helper" >/dev/null
 
 echo "Booting fresh Uptime Kuma container from separately restored volume"
 start "$second_container" "$second_volume"
+docker cp scripts/local/runtime.cjs "$second_container:/app/kumaedge-acceptance.cjs" >/dev/null
+docker exec "$second_container" node /app/kumaedge-acceptance.cjs check
 docker exec "$second_container" sh -c '
   test -s /app/data/kuma.db &&
   grep -Fxq recovery-sentinel /app/data/kumaedge-dr-synthetic/check.txt

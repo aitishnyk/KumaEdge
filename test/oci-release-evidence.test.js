@@ -53,8 +53,8 @@ test("malformed or inaccessible registry data cannot count as a valid digest", (
 });
 
 test("build uploads evidence after publishing; deploy verifies before mutation", () => {
-  const build = readFileSync(".github/workflows/bunny-managed-image.yml", "utf8");
-  const deploy = readFileSync(".github/workflows/deploy-managed.yml", "utf8");
+  const build = readFileSync("docs/legacy-workflows/bunny-managed-image.yml.disabled", "utf8");
+  const deploy = readFileSync("docs/legacy-workflows/deploy-managed.yml.disabled", "utf8");
   const publish=build.indexOf("Tag and publish the EXACT tested image");
   const record=build.indexOf("Record published OCI manifest digests");
   const upload=build.indexOf("Upload publisher digest evidence");
@@ -70,7 +70,7 @@ test("build uploads evidence after publishing; deploy verifies before mutation",
 });
 
 test("Docker Hub pull authentication precedes both pinned upstream builds", () => {
-  const workflow = readFileSync(".github/workflows/bunny-managed-image.yml", "utf8");
+  const workflow = readFileSync("docs/legacy-workflows/bunny-managed-image.yml.disabled", "utf8");
   const auth = workflow.indexOf("Authenticate pinned upstream pulls to Docker Hub when configured");
   const main = workflow.indexOf("Pull and build upstream runtime");
   const backup = workflow.indexOf("Build optional encrypted backup sidecar");

@@ -1,1 +1,7 @@
-{"source":"louislam/uptime-kuma","reviewed_sha":null,"note":"Reviewed SHA is intentionally null until the first upstream review PR is merged."}
+{
+  "source": "louislam/uptime-kuma",
+  "reviewed_sha": "d54e4619e52553416e292549f435cc7e57330c29",
+  "note": "Local upstream review: official release, OCI manifests, known #8019 trust change, runtime and 2.5.6 migration tested. No live certification.",
+  "reviewed_version": "2.5.7",
+  "reviewed_date": "2026-10-26"
+}

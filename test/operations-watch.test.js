@@ -17,7 +17,7 @@ test("production audit blocks private and loopback IP literals without network r
 });
 
 test("external observer is opt-in and never transmits admin or Bunny credentials", () => {
-  const w=readFileSync(".github/workflows/production-uptime-watch.yml","utf8");
+  const w=readFileSync("docs/legacy-workflows/production-uptime-watch.yml.disabled","utf8");
   assert.match(w,/KUMAEDGE_PUBLIC_WATCH_ENABLED == 'true'/);
   assert.match(w,/github.event_name == 'workflow_dispatch'/);
   assert.match(w,/timeout-minutes: 3/);

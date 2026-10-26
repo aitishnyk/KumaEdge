@@ -123,8 +123,8 @@ test("image guard writes publish outputs only after both manifests were checked"
 });
 
 test("public release verifies provenance before registry but NEVER modifies Bunny", () => {
-  const deploy=readFileSync(".github/workflows/deploy-managed.yml","utf8");
-  const build=readFileSync(".github/workflows/bunny-managed-image.yml","utf8");
+  const deploy=readFileSync("docs/legacy-workflows/deploy-managed.yml.disabled","utf8");
+  const build=readFileSync("docs/legacy-workflows/bunny-managed-image.yml.disabled","utf8");
   const source=deploy.indexOf("node scripts/verify-release-provenance.mjs");
   const registry=deploy.indexOf("Verify release image exists before operator approval");
   const evidence=deploy.indexOf("node scripts/oci-release-evidence.mjs verify");

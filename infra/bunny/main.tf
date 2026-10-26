@@ -25,19 +25,6 @@ resource "bunnynet_compute_container_app" "kumaedge" {
     image_digest      = var.image_digest == "" ? null : var.image_digest
     image_pull_policy = "IfNotPresent"
 
-    # Anycast avoids an automatically configured shared CDN content cache.
-    # It does not itself prove HTTPS/TLS is set up. Never use HTTP for login.
-    endpoint {
-      name = "web"
-      type = "Anycast"
-
-      port {
-        container = 3001
-        exposed   = 3001
-        protocols = ["TCP"]
-      }
-    }
-
     # A health probe must not depend on having an admin login session.
     readiness_probe {
       type              = "http"
@@ -55,6 +42,46 @@ resource "bunnynet_compute_container_app" "kumaedge" {
     volumemount {
       name = "data"
       path = "/app/data"
+    }
+  }
+
+  # The original engine has no public endpoint. Protect setup and all sessions
+  # before CDN cache/WebSocket configuration and owner initialization.
+  container {
+    name              = "owner-gateway"
+    image_registry    = bunnynet_compute_container_imageregistry.ghcr.id
+    image_namespace   = var.image_namespace
+    image_name        = var.image_name
+    image_tag         = var.image_tag
+    image_digest      = var.image_digest == "" ? null : var.image_digest
+    image_pull_policy = "IfNotPresent"
+    command           = "node"
+    arguments         = "/opt/kumaedge/front-door.cjs"
+    env {
+      name  = "KUMAEDGE_FRONT_DOOR_PASSWORD"
+      value = var.front_door_password
+    }
+    endpoint {
+      name = "web"
+      type = "CDN"
+      cdn {
+        origin_ssl = false
+      }
+      port {
+        container = 3002
+      }
+    }
+    readiness_probe {
+      type              = "http"
+      port              = 3002
+      initial_delay     = 20
+      period            = 15
+      timeout           = 5
+      failure_threshold = 3
+      http {
+        path            = "/healthz"
+        expected_status = 200
+      }
     }
   }
 

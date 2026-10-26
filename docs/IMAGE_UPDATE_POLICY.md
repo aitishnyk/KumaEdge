@@ -1,3 +1,8 @@
+> v0.19 candidate: releases now run locally on the Mac, without GitHub Actions.
+> See [Local Docker release](LOCAL_DOCKER_RELEASE.md), [upstream audit](UPSTREAM_VERSION_AUDIT.md),
+> [live deployment gates](BUNNY_LIVE_DEPLOYMENT.md) and [rollback](RELEASE_AND_ROLLBACK.md).
+> Historical CI/publisher instructions below are retained for older releases and are not current release prerequisites.
+
 # KumaEdge — reviewed upstream security image updates
 
 The managed Dockerfile pins the official Uptime Kuma v2 image to a reviewed registry SHA-256 digest, not only the moving `:2` tag. The optional backup-worker Python base image is pinned too.

@@ -14,3 +14,7 @@ crash.*.log
 *.tfplan
 *.plan
 .DS_Store
+
+.local-release/
+__pycache__/
+*.pyc

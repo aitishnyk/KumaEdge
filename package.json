@@ -1,14 +1,14 @@
 {
   "name": "kumaedge",
-  "version": "0.0.1",
+  "version": "0.19.0-rc.1",
   "private": true,
   "type": "module",
-  "description": "Pre-alpha edge-first uptime monitoring foundation",
+  "description": "Uptime Kuma single-writer deployment and local release tooling for Bunny Magic Containers",
   "scripts": {
     "test": "node --test"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "license": "MIT"
 }

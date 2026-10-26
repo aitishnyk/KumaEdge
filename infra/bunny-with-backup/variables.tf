@@ -124,3 +124,13 @@ variable "backup_image_digest" {
     error_message = "backup_image_digest must be empty or lowercase sha256:64-hex."
   }
 }
+
+variable "front_door_password" {
+  description = "Private owner bootstrap gateway password; minimum 32 characters. Stored in private state."
+  type        = string
+  sensitive   = true
+  validation {
+    condition     = length(var.front_door_password) >= 32
+    error_message = "A private gateway password of at least 32 characters is required."
+  }
+}
