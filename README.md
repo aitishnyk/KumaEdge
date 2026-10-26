@@ -1,3 +1,10 @@
+> **v0.20.0 candidate:** integrated optional demo and existing Bunny deployment hardening.
+> Owner: https://mc-b4n2u1709h.bunny.run/ · Demo target: /demo (pending deployment).
+> See [demo configuration](docs/DEMO_MODE.md), [live gates](docs/BUNNY_LIVE_ACCEPTANCE_REPORT.md)
+> and [local release/rollback](docs/V020_RELEASE_AND_ROLLBACK.md). Live readiness is blocked
+> until approved app update and real post-update gates. The owner has authorized
+> one scoped disposable-data reset; old-data export is no longer a deployment prerequisite.
+
 > **v0.19.0-rc.1 candidate — local Docker release.** Upstream pin: Uptime Kuma 2.5.7.
 > Live status: **DEPLOYMENT_BLOCKED**, no verified demo URL yet.
 > GitHub Actions workflows are archived; use [local release](docs/LOCAL_DOCKER_RELEASE.md).
@@ -57,3 +64,13 @@ A verified SQLite snapshot is **not** a complete `/app/data` backup or proof of 
 - [Pinned image digest and upstream security review workflow](docs/IMAGE_UPDATE_POLICY.md) (reviewed PRs; no unapproved production patching)
 
 **v0.18 credential boundary:** The Bunny Magic Containers action requires an account key rather than an app-scoped sub-user token. All public GitHub workflows verify releases but cannot modify Bunny or access your account API key. [Local deployment and key safety](docs/BUNNY_LOCAL_CREDENTIALS.md).
+
+## v0.20.0 live acceptance
+
+The existing Bunny endpoint runs immutable image source `5c2bd701758944b609dfd588ed12b3f97624c51b`
+with original Uptime Kuma 2.5.7. OWNER/TOTP, independent read-only DEMO, HTTPS/WS/CDN,
+monitoring, same-volume restart and real Bunny-source encrypted backup/local restore
+passed. Readiness: **DEMO_READY**. External notification delivery is NOT_VERIFIED
+because no channel is configured; this is not a PRODUCTION_READY claim. See
+[the live report](docs/BUNNY_LIVE_ACCEPTANCE_REPORT.md) and
+[release/rollback](docs/V020_RELEASE_AND_ROLLBACK.md).

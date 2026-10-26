@@ -25,6 +25,16 @@ resource "bunnynet_compute_container_app" "kumaedge" {
     image_digest      = var.image_digest == "" ? null : var.image_digest
     image_pull_policy = "IfNotPresent"
 
+    command   = var.engine_operations_enabled ? "node" : null
+    arguments = var.engine_operations_enabled ? "/opt/kumaedge/engine-launch.cjs" : null
+    dynamic "env" {
+      for_each = nonsensitive(toset(keys(var.engine_environment)))
+      content {
+        name  = env.value
+        value = var.engine_environment[env.value]
+      }
+    }
+
     # A health probe must not depend on having an admin login session.
     readiness_probe {
       type              = "http"
@@ -57,9 +67,12 @@ resource "bunnynet_compute_container_app" "kumaedge" {
     image_pull_policy = "IfNotPresent"
     command           = "node"
     arguments         = "/opt/kumaedge/front-door.cjs"
-    env {
-      name  = "KUMAEDGE_FRONT_DOOR_PASSWORD"
-      value = var.front_door_password
+    dynamic "env" {
+      for_each = nonsensitive(toset(keys(merge({ KUMAEDGE_DEMO_ENABLED = "false", KUMAEDGE_FRONT_DOOR_PASSWORD = var.front_door_password }, var.demo_environment))))
+      content {
+        name  = env.value
+        value = merge({ KUMAEDGE_DEMO_ENABLED = "false", KUMAEDGE_FRONT_DOOR_PASSWORD = var.front_door_password }, var.demo_environment)[env.value]
+      }
     }
     endpoint {
       name = "web"

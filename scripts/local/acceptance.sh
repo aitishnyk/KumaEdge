@@ -5,8 +5,8 @@ require_source
 export KUMAEDGE_PUBLIC_URL="$1"
 # The owner supplies the gateway secret privately; never as a command argument.
 if [[ -z "${KUMAEDGE_FRONT_DOOR_PASSWORD:-}" ]]; then
-  [[ -s "$EVIDENCE/owner-gateway-password.private" ]] || { echo 'Private owner gateway password unavailable'; exit 2; }
-  KUMAEDGE_FRONT_DOOR_PASSWORD="$(cat "$EVIDENCE/owner-gateway-password.private")"
+  [[ -s "$ROOT/.local-deployments/${KUMAEDGE_DEPLOYMENT_ID:-E2quWe26NmOfL7q}/owner-gateway-password.private" ]] || { echo 'Private owner gateway password unavailable'; exit 2; }
+  KUMAEDGE_FRONT_DOOR_PASSWORD="$(cat "$ROOT/.local-deployments/${KUMAEDGE_DEPLOYMENT_ID:-E2quWe26NmOfL7q}/owner-gateway-password.private")"
   export KUMAEDGE_FRONT_DOOR_PASSWORD
 fi
 name="kumaedge-public-acceptance-$$"

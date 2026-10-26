@@ -4,7 +4,9 @@ FROM louislam/uptime-kuma:2.5.7@sha256:4b95dbe7ac5343b768f8e04e3035ccd59997872b1
 # Upstream-supported setting bypasses first-boot DB type selection wizard.
 # Single-writer deployment uses the mounted /app/data SQLite database.
 ENV UPTIME_KUMA_DB_TYPE=sqlite
-COPY scripts/front-door.cjs /opt/kumaedge/front-door.cjs
+RUN apt-get update && apt-get install -y --no-install-recommends age && rm -rf /var/lib/apt/lists/*
+COPY scripts/front-door.cjs scripts/demo-mode.cjs scripts/engine-launch.cjs scripts/volume-backup.py /opt/kumaedge/
+COPY scripts/demo-assets /opt/kumaedge/demo-assets
 LABEL org.opencontainers.image.title="KumaEdge Bunny Managed" \
       org.opencontainers.image.source="https://github.com/aitishnyk/KumaEdge" \
       org.opencontainers.image.licenses="MIT"

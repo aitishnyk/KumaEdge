@@ -20,3 +20,12 @@ infra
 **/*.tfplan
 
 !scripts/front-door.cjs
+
+.local-deployments
+
+!scripts/demo-mode.cjs
+!scripts/demo-assets
+!scripts/demo-assets/**
+
+!scripts/engine-launch.cjs
+!scripts/volume-backup.py

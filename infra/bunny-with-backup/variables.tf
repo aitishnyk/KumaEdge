@@ -134,3 +134,34 @@ variable "front_door_password" {
     error_message = "A private gateway password of at least 32 characters is required."
   }
 }
+
+variable "demo_environment" {
+  description = "Optional isolated demo configuration. Secrets remain in private local state."
+  type        = map(string)
+  default     = {}
+  sensitive   = true
+  validation {
+    condition = alltrue([for k in keys(var.demo_environment) : contains([
+      "KUMAEDGE_DEMO_ENABLED", "KUMAEDGE_DEMO_USERNAME", "KUMAEDGE_DEMO_PASSWORD_HASH",
+      "KUMAEDGE_DEMO_SESSION_SECRET", "KUMAEDGE_DEMO_SESSION_TTL", "KUMAEDGE_DEMO_PUBLIC_TITLE",
+      "KUMAEDGE_DEMO_STATUS_PAGE", "KUMAEDGE_DEMO_SERVICES", "KUMAEDGE_PUBLIC_ORIGIN"
+    ], k)])
+    error_message = "Only explicit demo environment keys are allowed."
+  }
+}
+
+variable "engine_operations_enabled" {
+  type    = bool
+  default = false
+}
+variable "engine_environment" {
+  type      = map(string)
+  default   = {}
+  sensitive = true
+  validation {
+    condition = alltrue([for k in keys(var.engine_environment) : contains([
+      "KUMAEDGE_OPS_TOKEN", "KUMAEDGE_BACKUP_RECIPIENT", "KUMAEDGE_DISPOSABLE_RESET_NONCE", "KUMAEDGE_RESET_TARGET_APP_ID"
+    ], k)])
+    error_message = "Only explicit engine operations keys allowed."
+  }
+}

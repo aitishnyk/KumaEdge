@@ -18,7 +18,7 @@ def digest(p):
     return hashlib.sha256(p.read_bytes()).hexdigest()
 refs = {'main': 'kumaedge-local:'+sha, 'backup': 'kumaedge-backup-local:'+sha}
 if sys.argv[1] == 'record':
-    required = ['tests.pass', 'node.log', 'python.log', 'runtime.log', 'monitoring.log', 'tls.log', 'migration.log', 'recovery.log', 'backup-age.log', 'bunny-validate.log', 'bunny-with-backup-validate.log']
+    required = ['tests.pass', 'node.log', 'python.log', 'runtime.log', 'monitoring.log', 'operations.log', 'bootstrap.log', 'tls.log', 'migration.log', 'recovery.log', 'backup-age.log', 'main-age.log', 'bunny-validate.log', 'bunny-with-backup-validate.log']
     if (directory/'tests.pass').read_text().strip() != sha:
         raise SystemExit('Tests do not match HEAD')
     d = {'schema':'kumaedge-local-release-v1', 'sha':sha, 'timestamp':datetime.datetime.now(datetime.timezone.utc).isoformat(), 'platform':'linux/amd64', 'upstream':(root/'Dockerfile').read_text().split('FROM ')[1].splitlines()[0], 'images':{k:{'local':v,'id':image(v)} for k,v in refs.items()}, 'checks':{f: {'status':'PASS','sha256':digest(directory/f)} for f in required}, 'live':'NOT_RUN'}
