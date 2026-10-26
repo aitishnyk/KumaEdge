@@ -49,6 +49,19 @@ if existing and not state.exists():raise SystemExit('Existing Kuma app detected;
 state_data=json.loads(state.read_text())
 app_ids=[i['attributes']['id'] for r in state_data.get('resources',[]) if r['type']=='bunnynet_compute_container_app' for i in r['instances']]
 if app_ids!=[deployment_id]:raise SystemExit('Deployment state identity mismatch')
+
+def live_identity():
+    app=json.loads(run('bunny','api','GET','/mc/apps/'+deployment_id))
+    volumes=json.loads(run('bunny','api','GET','/mc/apps/'+deployment_id+'/volumes'))
+    endpoints=[e for c in app['containerTemplates'] for e in c.get('endpoints',[])]
+    if len(app['containerTemplates'])!=2 or {c['name'] for c in app['containerTemplates']}!={'kumaedge','owner-gateway'}:raise SystemExit('Live container inventory changed')
+    if len(endpoints)!=1 or endpoints[0]['id']!='E2quWe26NmOfL7q-web-xlcFG4JU0d' or str(endpoints[0]['pullZoneId'])!='6868097' or endpoints[0]['publicHost']!='mc-b4n2u1709h.bunny.run':raise SystemExit('Existing endpoint/Pull Zone identity changed')
+    items=volumes['items']
+    if len(items)!=1 or items[0]['id']!='117a1d40-18e4-4041-b8f7-57e2603cd32a' or items[0]['size']!=5:raise SystemExit('Existing volume identity/size changed')
+    if app['autoScaling']!={'min':1,'max':1} or app['regionSettings']['allowedRegionIds']!=['DE'] or app['regionSettings']['requiredRegionIds']!=['DE']:raise SystemExit('Existing placement/replica policy changed')
+    config={k:app[k] for k in ['id','name','runtimeType','regionSettings','containerTemplates','volumes','autoScaling','networkSettings','displayEndpoint']}
+    return hashlib.sha256(json.dumps(config,sort_keys=True).encode()).hexdigest()
+
 module=root/'infra/bunny';plan=directory/'bunny.tfplan';log=directory/'bunny-plan.private.log'
 def terraform(*args,output=None):
     result=subprocess.run(['terraform','-chdir='+str(module),*args],env=env,cwd=root,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
@@ -57,11 +70,12 @@ def terraform(*args,output=None):
     return result.stdout
 terraform('init','-reconfigure','-input=false','-backend-config=path='+str(state),output=directory/'bunny-deploy-init.private.log')
 if sys.argv[1]=='plan':
+    live_config_hash=live_identity()
     terraform('plan','-input=false','-no-color','-out='+str(plan),output=log)
     data=json.loads(terraform('show','-json',str(plan)))
     try:changed_fields=validate_plan(data,deployment_id,sha,evidence['images']['main']['digest'])
     except ValueError as error:plan.unlink();raise SystemExit(str(error))
-    summary={'sha':sha,'plan_sha256':hashlib.sha256(plan.read_bytes()).hexdigest(),'region':'DE','volume_gb':5,'resources':[{ 'address':c['address'],'actions':c['change']['actions']} for c in data.get('resource_changes',[])], 'cost_scenario_usd_month':5.61,'cost_assumptions':'730h at sustained 0.1 CPU and 1GB total RAM + 5GB volume; CDN traffic, overhead and taxes extra; not a spending cap','endpoint':'CDN HTTPS -> protected owner gateway :3002 -> original Kuma :3001','apply':'NOT_RUN','allowed_changed_fields':changed_fields,'new_paid_resources':0,'deployment_id':deployment_id,'state_sha256':hashlib.sha256(state.read_bytes()).hexdigest()}
+    summary={'sha':sha,'plan_sha256':hashlib.sha256(plan.read_bytes()).hexdigest(),'region':'DE','volume_gb':5,'resources':[{ 'address':c['address'],'actions':c['change']['actions']} for c in data.get('resource_changes',[])], 'cost_scenario_usd_month':5.61,'cost_assumptions':'730h at sustained 0.1 CPU and 1GB total RAM + 5GB volume; CDN traffic, overhead and taxes extra; not a spending cap','endpoint':'CDN HTTPS -> protected owner gateway :3002 -> original Kuma :3001','apply':'NOT_RUN','allowed_changed_fields':changed_fields,'new_paid_resources':0,'live_config_sha256':live_config_hash,'deployment_id':deployment_id,'state_sha256':hashlib.sha256(state.read_bytes()).hexdigest()}
     (directory/'bunny-plan-summary.json').write_text(json.dumps(summary,indent=2)+'\n')
     print(json.dumps(summary,indent=2));print('Private full plan:',log)
 else:
@@ -69,6 +83,7 @@ else:
     summary=json.loads((directory/'bunny-plan-summary.json').read_text())
     if hashlib.sha256(plan.read_bytes()).hexdigest()!=summary['plan_sha256']:raise SystemExit('Reviewed plan changed')
     if hashlib.sha256(state.read_bytes()).hexdigest()!=summary['state_sha256']:raise SystemExit('State changed; generate a new reviewed plan')
+    if live_identity()!=summary['live_config_sha256']:raise SystemExit('Live configuration changed after plan; re-plan required')
     receipt=deployment/'live-backup-restore-receipt.private.json'
     if not receipt.exists():raise SystemExit('Verified full Bunny-source backup and local isolated restore receipt required before updating')
     backup=json.loads(receipt.read_text())
@@ -81,5 +96,6 @@ else:
     if confirmation!='APPLY PAID KUMAEDGE '+sha[:12]:raise SystemExit('No resources applied')
     if run('git','rev-parse','HEAD')!=sha or run('git','status','--porcelain','--untracked-files=all'):raise SystemExit('Source changed during approval')
     terraform('apply','-input=false','-no-color',str(plan),output=directory/'bunny-apply.private.log')
+    live_identity()
     state.chmod(0o600)
     print('Apply requested. Live TLS/cache/WebSocket, 2FA, notifications and Bunny restore remain mandatory; inspect private state and outputs.')
