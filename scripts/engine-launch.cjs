@@ -21,7 +21,7 @@ function start(){
  engine=spawn(process.execPath,['server/server.js'],{cwd:'/app',env:process.env,stdio:'inherit'});
  const child=engine;child.once('exit',code=>{const expected=expectedStops.delete(child);if(!expected&&!stopping){console.error('Kuma engine exited');process.exit(code||1);}});
 }
-async function stop(){if(!engine||engine.exitCode!==null||engine.signalCode!==null)return;expectedStops.add(engine);await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Engine did not stop cleanly')),45000);engine.once('exit',()=>{clearTimeout(timer);resolve();});engine.kill('SIGTERM');});}
+async function stop(){const child=engine;if(!child||child.exitCode!==null||child.signalCode!==null)return;expectedStops.add(child);await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{expectedStops.delete(child);reject(Error('Engine did not stop cleanly'));},45000);child.once('exit',()=>{clearTimeout(timer);resolve();});child.kill('SIGTERM');});}
 const ops=http.createServer(async(req,res)=>{
  if(req.url==='/target'&&req.method==='GET'){res.writeHead(targetHealthy?200:503,cache);res.end('Controlled acceptance target');return;}
  if(!permitted(req)){res.writeHead(403,cache);res.end();return;}
